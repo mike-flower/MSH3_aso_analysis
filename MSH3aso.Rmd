@@ -1,0 +1,3213 @@
+---
+title: "MSH3 ASO"
+author: "Michael Flower"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    theme: paper
+    highlight: kate
+    toc: true
+    toc_float: true
+    toc_depth: 4
+    number_sections: false
+    code_folding: hide
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+
+
+``` {r knit, echo=TRUE, eval=TRUE, message=FALSE, warning=FALSE}
+
+# rmarkdown::render("MSH3aso.Rmd",
+#                   output_file = file.path(out_dir, "MSH3aso.html"))
+
+```
+
+
+# Setup environment
+
+``` {r setup_WGCNA_environment, echo=TRUE, eval=TRUE, message=FALSE, warning=FALSE, result='hide'}
+
+# Set the working directory where all WGCNA functions are stored
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+getwd()
+
+```
+
+Load packages.
+
+``` {r load_packages, echo=TRUE, eval=TRUE, message=FALSE, warning=FALSE, results="hide"}
+
+# Required packages
+packages <- c("plyr", "dplyr", "ggplot2", "data.table", "readxl", "tidyr", "tidyverse", "janitor", "patchwork",
+              "ggdark", "xlsx", "openxlsx", "ggpubr", "writexl", "stringr", "ggpmisc", "drc", "mgcv", "scales",
+              "rstatix", "kableExtra", "DT", "zoo", "emmeans", "lme4")
+
+# # Install R packages if required
+# install.packages(setdiff(packages, rownames(installed.packages())))
+
+# # Install bioconductor packages if required
+# BiocManager::install(setdiff(packages, rownames(installed.packages())))
+# invisible(lapply(packages, function(x) library(x, character.only=TRUE)))
+
+# Load
+lapply(packages, library, character.only = TRUE)
+rm(packages)
+
+## Clear objects
+# rm(list = ls()) # This would cause rmarkdown to error
+# rm(list = ls()[!grepl("_env$", ls())]) # Remove all objects except environment imports
+
+```
+
+
+# Set variables
+
+``` {r set_variables, echo=TRUE, eval=TRUE, message=FALSE, warning=FALSE, results='hide'}
+
+# Data path
+data_path_spreadsheet <- "./data/MSH3aso_data.xlsx"
+data_path_juliet <- "/Users/michaelflower/Library/Mobile Documents/com~apple~CloudDocs/Documents/ACL/Collaborations/Emma Bunting/2024.05.01 Emma MSH3 ASO FA reanalysis/results/02-juliet.RData"
+
+
+# Output directory
+out_dir <- "./results"
+
+
+# Plot settings
+element_text_size = 22
+point_size = 3
+hide_ns = TRUE
+
+
+# Genes
+gene_colour <- c("MSH2" = "red", # "#F8766D"
+                 "MSH3" = "blue", # "#619CFF"
+                 "MSH6" = "#00BA38")
+gene_order <- c("MSH2", "MSH3", "MSH6")
+
+
+# Treatments
+treatment_rename <- c("Baseline" = "Baseline",
+                      "Vehicle" = "Vehicle",
+                      "MSH3aso-0.022uM" = "MSH3 ASO 0.022 µM",
+                      "MSH3aso-0.26uM" = "MSH3 ASO 0.26 µM",
+                      "MSH3aso-3uM" = "MSH3 ASO 3 µM",
+                      "SCRaso-3uM" = "SCR ASO 3 µM",
+                      "H2O2-500uM" = "H2O2 500 µM",
+                      "SCRaso" = "SCR ASO",
+                      "MSH3aso_1161149" = "MSH3 ASO 1161149",
+                      "MSH3aso_1161173" = "MSH3 ASO 1161173",
+                      "MSH3aso_1161329" = "MSH3 ASO 1161329")
+                      
+treatment_order <- c("Baseline", "Vehicle", "MSH3aso-0.022uM", "MSH3aso-0.26uM", 
+                     "MSH3aso-3uM", "SCRaso-3uM", "SCRaso", "H2O2-500uM",
+                     "MSH3aso_1161149", "MSH3aso_1161173", "MSH3aso_1161329")
+
+treatment_colour <- c("Baseline" = "darkgrey",
+                      "Vehicle" = "blue",
+                      "MSH3aso-0.022uM" = "red",
+                      "MSH3aso-0.26uM" = "purple",
+                      "MSH3aso-3uM" = "orange",
+                      "SCRaso-3uM" = "darkgreen",
+                      "H2O2-500uM" = "cyan",
+                      "SCRaso" = "darkgreen",
+                      "MSH3aso_1161149" = "purple",
+                      "MSH3aso_1161173" = "purple",
+                      "MSH3aso_1161329" = "purple")
+
+treatment_rename_subscript <- c("Baseline" = "Baseline",
+                                "Vehicle" = "Vehicle",
+                                "MSH3aso-0.022uM" = "MSH3~ASO~0.022~µM",
+                                "MSH3aso-0.26uM" = "MSH3~ASO~0.26~µM",
+                                "MSH3aso-3uM" = "MSH3~ASO~3~µM",
+                                "SCRaso-3uM" = "SCR~ASO~3~µM",
+                                "H2O2-500uM" = "H[2]*O[2]~500~µM")
+
+
+# Genotypes
+genotype_rename <- c("Unedited" = "Unedited",
+                     "MSH3ko" = "MSH3-/-",
+                     "FAN1ko" = "FAN1-/-")
+genotype_order <- c("Unedited", "MSH3ko", "FAN1ko")
+genotype_colour <- c("Unedited" = "blue",
+                     "MSH3ko" = "darkred",
+                     "FAN1ko" = "green")
+
+
+# Ionis dose
+treatment_ionis_rename <- c("Vehicle" = "Vehicle",
+                            "3ug" = "MSH3 ASO 3 µg",
+                            "10ug" = "MSH3 ASO 10 µg",
+                            "30ug" = "MSH3 ASO 30 µg",
+                            "SCRaso" = "SCR ASO")
+treatment_ionis_order <- c("Vehicle", "3ug", "10ug", "30ug")
+treatment_ionis_colour <- c("Vehicle" = "blue",
+                            "3ug" = "red",
+                            "10ug" = "purple",
+                            "30ug" = "orange",
+                            "SCRaso" = "darkgreen")
+
+
+# Tissue
+tissue_order <- c("Cortex", "Striatum", "Brainstem", "Spinal cord")
+
+# Output formats
+output_formats <- "svg" # c("png", "svg", "eps")
+
+# Models to fit
+my_models <- list(
+  "linear" = y ~ x,
+  "log" = y ~ log(x), # Can't use because instability rate goes negative at low MSH3 levels
+  "poly2" = y ~ poly(x, 2),
+  # "poly2raw" = y ~ poly(x, 2, raw = TRUE),
+  "poly3" = y ~ poly(x, 3),
+  # "poly3raw" = y ~ poly(x, 3, raw = TRUE),
+  "exponential" = I(log(y)) ~ x,  # Exponential model # Can't use because instability rate goes negative at low MSH3 levels
+  # "logistic" = I(log(y / (1 - y))) ~ x,  # Simple logistic model # Can't use because instability rate goes negative at low MSH3 levels
+  "exponential" = y ~ exp(x)
+)
+
+# Log increment
+log_increment = 0.001
+
+# p adjust method
+padj_method = "BH" # "bonferroni"
+
+# Errorbar metric
+errorbar_metric = "SE" # CL, SD
+
+```
+
+
+# Import data
+
+## Spreadsheet
+
+``` {r import_spreadsheet, echo=TRUE, eval=TRUE, message=TRUE, warning=FALSE}
+
+# Function to import all sheets
+read_full_excel <- function(file_path = NULL){ 
+  
+  # Imports the name of the sheets in the excel file and creates a vector
+  sheet_names <- readxl::excel_sheets(file_path)
+  
+  # Create list and add each excel sheet as a dataframe by a loop
+  sheets <- list()
+  for(i in 1:length(sheet_names)){
+    sheets[[i]] <-  readxl::read_xlsx(file_path, sheet = sheet_names[i])
+  }
+  
+  # Add the sheet names to the list: 
+  names(sheets) <- sheet_names
+  
+  return(sheets)
+  
+}
+
+# Import
+MSH3aso_data <- read_full_excel(file_path = data_path_spreadsheet)
+
+```
+
+
+## Juliet
+
+``` {r import_juliet, echo=TRUE, eval=TRUE, message=TRUE, warning=FALSE}
+
+if (file.exists(file.path(out_dir, "juliet_minimal.RData"))) {
+  load(file.path(out_dir, "juliet_minimal.RData"))
+} else {
+  
+  # Import juliet data
+  if(!exists("juliet_env")) {
+    juliet_env <- new.env()
+    load(file = data_path_juliet,
+         envir = juliet_env)
+    ls(envir = juliet_env)
+  }
+  
+  # Extract required objects
+  timecourse_stats <- juliet_env$timecourse_stats
+  timecourse_stats_manual <- juliet_env$timecourse_stats_manual
+  juliet_annotation <- juliet_env$annotation
+  
+  # Extract slopes
+  my_stats <- timecourse_stats$predvar2$ii
+  my_experment_names <- setNames(names(my_stats), names(my_stats))
+  juliet_slopes <- lapply(my_experment_names, function(my_experiment_name,
+                                               my_stats) {
+    my_stats[[my_experiment_name]]$slopes_uncorrected %>%
+      dplyr::mutate(experiment_name = my_experiment_name) %>%
+      relocate(experiment_name)
+  },
+  my_stats = my_stats)
+  juliet_slopes <- rbindlist(juliet_slopes)
+  
+  
+  # Extract slopes from manually curated MSH3ko vs CRISPRwt experiment
+  my_slopes <- timecourse_stats_manual$predvar2$ii$slopes_uncorrected %>%
+    dplyr::mutate(experiment_name = "MSH3ko_CRISPRwt_manual") %>%
+    relocate(experiment_name)
+  juliet_slopes <- rbind(juliet_slopes, my_slopes)
+  
+  # Save
+  save(juliet_slopes, juliet_annotation,
+       file = file.path(out_dir, "juliet_minimal.RData"))
+  
+}
+
+```
+
+
+# Model fitting function
+
+Define a function to fit models.
+
+``` {r model_fit, echo=TRUE, eval=TRUE, message=TRUE, warning=FALSE}
+
+# Vector of model names
+model_names <- setNames(names(my_models), names(my_models))
+
+# Function to plot fits
+plot_model_function <- function(model_name,
+                                models,
+                                data,
+                                xvar, xlabel,
+                                yvar, ylabel,
+                                group_var = NA, group_label = NA,
+                                log_increment = 0.001,
+                                plot_se = TRUE) {
+
+  # # Manual
+  # model_name = model_names[[2]]
+  # models = my_models
+  # data = plot_data
+  # xvar = "dose_uM"
+  # xlabel = "MSH3 ASO dose (µM)"
+  # yvar = "level"
+  # ylabel = "Relative protein level (%)"
+  # group_var = NA
+  # group_label = NA
+  # log_increment = 0.001
+  # plot_se = TRUE
+
+  # # Report
+  # print(model_name)
+
+  # Extract formula
+  my_model <- models[[model_name]]
+
+  # If formula contains log, use the pre-logged data with +0.001
+  my_model_str <- deparse(my_model)
+  contains_log <- grepl("log", my_model_str)
+  if (contains_log) {
+    data <- data %>%
+      dplyr::mutate(!!sym(xvar) := !!sym(xvar) + log_increment)
+  }
+
+  # Plot
+  if (is.na(group_var)) {
+
+    my_plot <-
+      ggplot(data, aes(x = !!sym(xvar), y = !!sym(yvar))) +
+      # geom_point(size = point_size) +
+      geom_point() +
+      stat_smooth(method = lm,
+                  formula = my_model,
+                  fullrange = TRUE, se = plot_se) +
+      stat_poly_eq(formula = my_model,
+                   aes(label = paste(after_stat(eq.label),
+                                     after_stat(rr.label),
+                                     after_stat(p.value.label),
+                                     sep = "~~~")),
+                   parse = TRUE, coef.digits = 3, f.digits = 3, p.digits = 3,
+                   rr.digits = 3, size = 3) +
+      labs(title = model_name,
+           subtitle = c(my_model),
+           x = xlabel,
+           y = ylabel) +
+      theme_minimal()
+
+  } else {
+
+     my_plot <-
+       ggplot(data, aes(x = !!sym(xvar), y = !!sym(yvar), colour = !!sym(group_var), fill = !!sym(group_var))) +
+       geom_point() +
+       stat_smooth(method = lm,
+                   formula = my_model,
+                   fullrange = TRUE, se = plot_se) +
+       stat_poly_eq(formula = my_model,
+                    aes(label = paste(after_stat(eq.label),
+                                      after_stat(rr.label),
+                                      after_stat(p.value.label),
+                                      sep = "~~~")),
+                    parse = TRUE, coef.digits = 3, f.digits = 3, p.digits = 3,
+                    rr.digits = 3, size = 3) +
+       labs(title = model_name,
+            subtitle = c(my_model),
+            x = xlabel,
+            y = ylabel,
+            colour = group_label,
+            fill = group_label) +
+       theme_minimal()
+
+  }
+
+  # Convert xy notation to real variables for lm function
+  left <- gsub("\\by\\b", yvar, as.character(my_model[2]))
+  right <- gsub("\\bx\\b", xvar, as.character(my_model[3])) # This pattern \\bx\\b ensures that "x" is replaced only when it stands alone as a word. \\b denotes a word boundary.
+
+  # Linear model
+  if (is.na(group_var)) {
+    my_model_long <- sprintf("%s ~ %s", left, right) # https://stackoverflow.com/questions/26381410/edit-and-reuse-the-formula-part-of-the-call-for-a-model-in-r
+    my_model_long <- as.formula(my_model_long)
+    my_lm <- lm(my_model_long, data = data)
+    r2 <- summary(my_lm)$r.squared
+  } else {
+    my_model_long <- sprintf("%s ~ %s * %s", left, right, group_var) # https://stackoverflow.com/questions/26381410/edit-and-reuse-the-formula-part-of-the-call-for-a-model-in-r
+    my_model_long <- as.formula(my_model_long)
+    my_lm <- lm(my_model_long, data = data)
+    r2 <- summary(my_lm)$r.squared
+  }
+
+  # Output
+  out <- mget(c("my_plot", "my_model", "r2"))
+  return(out)
+
+}
+
+```
+
+
+# Titration western MSH3 1wk
+
+## Fit models
+
+``` {r titration_western_MSH3_1wk_fit, echo=TRUE, eval=TRUE, message=TRUE, warning=FALSE, fig.height=10, fig.width=15}
+
+# Experiment ID
+experiment_id <- names(MSH3aso_data)[[1]]
+experiment_id
+
+# Make results directory
+dir.create(file.path(out_dir, experiment_id),
+           recursive = TRUE)
+
+# Format data
+plot_data <- MSH3aso_data[[experiment_id]] %>%
+  pivot_longer(!dose_uM,
+               names_to = "label",
+               values_to = "level") %>%
+  separate_wider_delim(label, "_", names = c("gene", "rep")) %>%
+  dplyr::mutate(dose_uM = as.numeric(dose_uM),
+                level = as.numeric(level),
+                dose_uM_forlog = dose_uM + log_increment) %>% # Add increment (+0.001) to log the data
+  dplyr::filter(!is.na(level))
+
+# Plot using each formula
+my_fits <- lapply(model_names, plot_model_function,
+                  models = my_models,
+                  data = plot_data,
+                  xvar = "dose_uM",
+                  xlabel = "MSH3 ASO dose (µM)",
+                  yvar = "level",
+                  ylabel = "Relative protein level (%)",
+                  group_var = NA,
+                  group_label = NA,
+                  log_increment = log_increment,
+                  plot_se = TRUE)
+
+# Plot model fits
+my_plots <- lapply(my_fits, function(my_fit) {
+  my_fit$my_plot
+})
+wrap_plots(my_plots) +
+  plot_annotation(title = "Regression models",
+                  theme = theme(plot.title = element_text(hjust = 0.5, face = "bold")))
+
+# r2 table
+my_r2 <- lapply(my_fits, function(my_fit) {
+  my_fit[["r2"]]
+})
+r2_table <- data.frame(model_name = names(my_r2),
+                       r2 = unlist(my_r2)) %>%
+  tibble::rownames_to_column("model_number") %>%
+  arrange(-r2)
+
+# Display r2 table
+kbl(r2_table, caption = "R-squared") %>%
+  kable_styling(bootstrap_options = "striped")
+
+```
+
+
+## Functions
+
+``` {r titration_western_MSH3_1wk_functions, echo=TRUE, eval=TRUE, message=TRUE, warning=FALSE}
+
+# Helper function to calculate the effective dose for a given response level using interpolation
+ed_interpolation_helper <- function(data, response_var, pred_var, formula, model_function, response_level) {
+  
+  if (model_function == "lm") {
+    my_model <- lm(formula, data = data)
+  } else if (model_function == "drm") {
+    my_model <- drm(formula, data = data, fct = LL.4())
+  }
+  predicted_values <- setNames(data.frame(seq(0, max(data[[pred_var]]), length.out = 1000)), pred_var)
+  predictions <- predict(my_model, newdata = predicted_values, interval = "confidence")
+  predicted_values <- cbind(predicted_values, predictions)
+  colnames(predicted_values) <- c(pred_var, response_var, "lower_ci", "upper_ci")
+  ed <- approx(predicted_values[, response_var], predicted_values[[pred_var]], xout = response_level)$y
+  return(list(predicted_values = predicted_values,
+              ed = ed))
+}
+
+
+# Effective dose bootstrap function to calculate confidence intervals
+ed_bootstrap_helper <- function(data, response_var, pred_var, formula, model_function, response_level, n_bootstrap = 1000, confidence_level = 0.95) {
+  
+  # Resample data and compute ED for each resample
+  ed_bs <- replicate(n_bootstrap, {
+    data_resample <- data[sample(nrow(data), replace = TRUE), ]
+    my_ed <- ed_interpolation_helper(data = data_resample,
+                                     response_var = response_var,
+                                     pred_var = pred_var,
+                                     formula = formula,
+                                     model_function = model_function,
+                                     response_level = response_level)
+    return(my_ed$ed)
+  })
+  
+  # Calculate confidence intervals
+  alpha <- 1 - confidence_level
+  ci_lower = quantile(na.omit(ed_bs), probs = alpha / 2)
+  ci_upper = quantile(na.omit(ed_bs), probs = 1 - (alpha / 2))
+  
+  # Output
+  return(list(ci_lower = as.numeric(ci_lower),
+              ci_upper = as.numeric(ci_upper)))
+}
+
+
+# Bring the effective dose (ED) interpolation and confidence interval functions together
+ed_interpolation <- function(data, response_var, pred_var, formula, model_function, response_level, n_bootstrap = 1000, confidence_level = 0.95) {
+  
+  # Calculate effective dose
+  ed_result <- ed_interpolation_helper(data = data,
+                                       response_var = response_var,
+                                       pred_var = pred_var,
+                                       formula = formula,
+                                       model_function = model_function,
+                                       response_level = response_level)
+  
+  # Confidence intervals
+  ed_ci <- ed_bootstrap_helper(data = data,
+                               response_var = response_var,
+                               pred_var = pred_var,
+                               formula = formula,
+                               model_function = model_function,
+                               response_level = response_level,
+                               n_bootstrap = n_bootstrap,
+                               confidence_level = confidence_level)
+  
+  # Output
+  return(list(ed = ed_result$ed,
+                   ci_lower = ed_ci$ci_lower,
+                   ci_upper = ed_ci$ci_upper,
+                   predicted_values = ed_result$predicted_values))
+}
+
+```
+
+
+## IC50
+
+``` {r titration_western_MSH3_1wk_IC50_calculate, echo=TRUE, eval=TRUE, message=TRUE, warning=FALSE}
+
+# Dose response model
+my_drm <- drm(level ~ dose_uM, data = plot_data, fct = LL.4())
+
+# Extract IC50 value
+ic50 <- ED(my_drm, 50)
+ic50_estimate <- ic50[[1]]
+ic50_se <- ic50[[2]]
+ic50_upper <- ic50_estimate + 1.96 * ic50_se
+ic50_lower <- ic50_estimate - 1.96 * ic50_se
+
+# Plot drm model
+plot(my_drm, main = "Dose-response curve using drc")
+abline(h = 50, col = "blue", lty = 2)
+abline(v = ic50_estimate, col = "blue", lty = 2)
+
+
+# Calculate IC50 by interpolation
+ic50_interpolation <- ed_interpolation(data = plot_data,
+                                       response_var = "level",
+                                       pred_var = "dose_uM_forlog",
+                                       formula = as.formula("level ~ log(dose_uM_forlog)"),
+                                       model_function = "lm",
+                                       response_level = 50,
+                                       n_bootstrap = 1000,
+                                       confidence_level = 0.95)
+
+# Readjust for the log increment
+ic50_interpolation$ed <- ic50_interpolation$ed - log_increment
+ic50_interpolation$ci_lower <- ic50_interpolation$ci_lower - log_increment
+ic50_interpolation$ci_upper <- ic50_interpolation$ci_upper - log_increment
+
+# Plot linear model
+plot(level ~ dose_uM_forlog, 
+     data = ic50_interpolation$predicted_values,
+     main = "Dose-response curve using interpolation")
+abline(h = 50, col = "blue", lty = 2)
+abline(v = ic50_interpolation$ed, col = "blue", lty = 2)
+abline(v = ic50_interpolation$ci_lower, col = "lightblue", lty = 2)
+abline(v = ic50_interpolation$ci_upper, col = "lightblue", lty = 2)
+
+
+# Table of IC50
+ic50_table <- data.frame(method = c("drc", "lm_interpolation"),
+                         IC50 = c(ic50_estimate, ic50_interpolation$ed),
+                         ci_lower = c(ic50_lower, ic50_interpolation$ci_lower),
+                         ci_upper = c(ic50_upper, ic50_interpolation$ci_upper))
+
+# Display IC50 table
+kbl(ic50_table, caption = "IC50") %>%
+  kable_styling(bootstrap_options = "striped")
+
+```
+
+
+## Linear dose axis
+
+``` {r titration_western_MSH3_1wk_plot_linear, echo=TRUE, eval=TRUE, message=TRUE, warning=FALSE}
+
+# Plot
+my_plot <-
+  ggplot(plot_data, aes(x = dose_uM_forlog, y = level)) +
+  geom_point(aes(colour = gene), size = point_size) +
+  stat_smooth(aes(colour = gene, fill = gene),
+              method = lm, formula = y ~ log(x), fullrange = TRUE, 
+              size = 1, alpha = 0.1) +
+  geom_segment(aes(x = -Inf, xend = ic50_interpolation$ed, 
+                   y = 50, yend = 50), 
+               colour = "black", linetype = "dashed", size = 0.5) +
+  geom_segment(aes(x = ic50_interpolation$ed, xend = ic50_interpolation$ed, 
+                   y = -Inf, yend = 50), 
+               colour = "black", linetype = "dashed", size = 0.5) +
+  geom_rect(aes(xmin = ic50_interpolation$ci_lower, xmax = ic50_interpolation$ci_upper,
+                ymin = -Inf, ymax = 50), 
+            fill = "darkgrey", alpha = 0.03, colour = NA) +
+  scale_colour_manual(values = gene_colour) +
+  scale_fill_manual(values = gene_colour) +
+  scale_x_continuous(breaks = pretty_breaks()) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  labs(x = "MSH3 ASO dose (µM)",
+       y = "Relative MSH3 protein level (%)",
+       colour = "Protein",
+       fill = "Protein") +
+  theme_bw() +
+  theme(text = element_text(size = element_text_size))
+my_plot
+
+# Export
+for (output_format in output_formats) {
+  ggsave(filename = file.path(out_dir, experiment_id, paste0(experiment_id, "_linearx.", output_format)),
+         plot = my_plot)
+}
+
+# Plot without legend
+my_plot <- my_plot +
+  theme(legend.position = "none")
+my_plot
+
+# Export
+for (output_format in output_formats) {
+  ggsave(filename = file.path(out_dir, experiment_id, paste0(experiment_id, "_linearx_nolegend.", output_format)),
+         plot = my_plot,
+         height = 6, width = 6)
+}
+
+```
+
+
+## Log dose axis
+
+``` {r titration_western_MSH3_1wk_plot_log, echo=TRUE, eval=TRUE, message=TRUE, warning=FALSE}
+
+# Plot
+my_plot <-
+  ggplot(plot_data, aes(x = dose_uM_forlog, y = level, colour = gene, fill = gene)) +
+  geom_point(size = point_size) +
+  stat_smooth(method = lm, 
+              formula = y ~ x, fullrange = TRUE, 
+              size = 1, alpha = 0.1) +
+  geom_segment(aes(x = 0.001, xend = ic50_interpolation$ed, 
+                   y = 50, yend = 50), 
+               colour = "black", linetype = "dashed", size = 0.5) +
+  geom_segment(aes(x = ic50_interpolation$ed, xend = ic50_interpolation$ed, 
+                   y = -Inf, yend = 50), 
+               colour = "black", linetype = "dashed", size = 0.5) +
+  geom_rect(aes(xmin = ic50_interpolation$ci_lower, xmax = ic50_interpolation$ci_upper,
+                ymin = -Inf, ymax = 50), 
+            fill = "darkgrey", alpha = 0.03, colour = NA) +
+  scale_colour_manual(values = gene_colour) +
+  scale_fill_manual(values = gene_colour) +
+  scale_x_continuous(trans = "log2",
+                     breaks = c(0.001, 0.01, 0.1, 1, 2, 3),
+                     labels = function(x) {
+                       ifelse(x < 1, round(x, digits = 3), round(x, digits = 0))
+                     }) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  labs(x = "MSH3 ASO dose (µM)",
+       y = "Relative MSH3 protein level (%)",
+       colour = "Protein",
+       fill = "Protein") +
+  theme_bw() +
+  theme(text = element_text(size = element_text_size))
+my_plot
+
+# Export
+for (output_format in output_formats) {
+  ggsave(filename = file.path(out_dir, experiment_id, paste0(experiment_id, "_logx.", output_format)),
+         plot = my_plot)
+}
+
+
+# Plot without legend
+my_plot <- my_plot +
+  theme(legend.position = "none")
+my_plot
+
+# Export
+for (output_format in output_formats) {
+  ggsave(filename = file.path(out_dir, experiment_id, paste0(experiment_id, "_logx_nolegend.", output_format)),
+         plot = my_plot,
+         height = 6, width = 6)
+}
+
+```
+
+
+
+# Titration western MSH2 and MSH6 1wk
+
+## Fit models
+
+``` {r titration_western_MSH2MSH6_1wk_fit, echo=TRUE, eval=TRUE, message=TRUE, warning=FALSE, fig.height=10, fig.width=15}
+
+# Experiment ID
+experiment_id <- names(MSH3aso_data)[[2]]
+experiment_id
+
+# Make results directory
+dir.create(file.path(out_dir, experiment_id),
+           recursive = TRUE)
+
+# Format data
+plot_data <- MSH3aso_data[[experiment_id]] %>%
+  pivot_longer(!dose_uM,
+               names_to = "label",
+               values_to = "level") %>%
+  separate_wider_delim(label, "_", names = c("gene", "rep")) %>%
+  dplyr::mutate(dose_uM = as.numeric(dose_uM),
+                level = as.numeric(level),
+                dose_uM_forlog = dose_uM + log_increment) %>% # Add increment (+0.001) to log the data
+  dplyr::filter(!is.na(level))
+
+# Relevel variables
+plot_data <- plot_data %>%
+  dplyr::mutate(gene = fct_relevel(gene, intersect(gene_order, unique(plot_data$gene))))
+
+# Plot using each formula
+my_fits <- lapply(model_names, plot_model_function,
+                  models = my_models,
+                  data = plot_data,
+                  xvar = "dose_uM",
+                  xlabel = "MSH3 ASO dose (µM)",
+                  yvar = "level",
+                  ylabel = "Relative protein level (%)",
+                  group_var = "gene",
+                  group_label = "Gene",
+                  log_increment = log_increment,
+                  plot_se = TRUE)
+
+# Plot model fits
+my_plots <- lapply(my_fits, function(my_fit) {
+  my_fit$my_plot
+})
+wrap_plots(my_plots) +
+  plot_annotation(title = "Regression models",
+                  theme = theme(plot.title = element_text(hjust = 0.5, face = "bold")))
+
+# r2 table
+my_r2 <- lapply(my_fits, function(my_fit) {
+  my_fit[["r2"]]
+})
+r2_table <- data.frame(model_name = names(my_r2),
+                       r2 = unlist(my_r2)) %>%
+  tibble::rownames_to_column("model_number") %>%
+  arrange(-r2)
+
+# Display r2 table
+kbl(r2_table, caption = "R-squared") %>%
+  kable_styling(bootstrap_options = "striped")
+
+```
+
+
+## Linear dose axis
+
+``` {r titration_western_MSH2MSH6_1wk_plot_linear, echo=TRUE, eval=TRUE, message=TRUE, warning=FALSE}
+
+# Plot
+my_plot <-
+  ggplot(plot_data, aes(x = dose_uM, y = level, colour = gene, fill = gene)) +
+  geom_point(size = point_size) +
+  stat_smooth(method = lm, 
+              formula = y ~ x,
+              fullrange = TRUE, alpha = 0.2) +
+  scale_colour_manual(values = gene_colour) +
+  scale_fill_manual(values = gene_colour) +
+  scale_x_continuous(breaks = pretty_breaks()) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  labs(x = "MSH3 ASO dose (µM)",
+       y = "Relative protein level (%)",
+       colour = "Protein",
+       fill = "Protein") +
+  theme_bw() +
+  theme(text = element_text(size = element_text_size))
+my_plot
+
+# Export
+for (output_format in output_formats) {
+  ggsave(filename = file.path(out_dir, experiment_id, paste0(experiment_id, "_linearx.", output_format)),
+         plot = my_plot)
+}
+
+# Plot without legend
+my_plot <- my_plot +
+  theme(legend.position = "none")
+my_plot
+
+# Export
+for (output_format in output_formats) {
+  ggsave(filename = file.path(out_dir, experiment_id, paste0(experiment_id, "_linearx_nolegend.", output_format)),
+         plot = my_plot,
+         height = 6, width = 6)
+}
+
+```
+
+
+## Log dose axis
+
+``` {r titration_western_MSH2MSH6_1wk_plot_log, echo=TRUE, eval=TRUE, message=TRUE, warning=FALSE}
+
+# Plot
+my_plot <-
+  ggplot(plot_data, aes(x = dose_uM, y = level, colour = gene, fill = gene)) +
+  geom_point(size = point_size) +
+  stat_smooth(method = lm, 
+              formula = y ~ x,
+              fullrange = TRUE, alpha = 0.2) +
+  scale_colour_manual(values = gene_colour) +
+  scale_fill_manual(values = gene_colour) +
+  scale_x_continuous(trans = "log2",
+                     breaks = c(0.001, 0.01, 0.1, 1, 2, 3),
+                     labels = function(x) {
+                       ifelse(x < 1, round(x, digits = 3), round(x, digits = 0))
+                     }) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  labs(x = "MSH3 ASO dose (µM)",
+       y = "Relative protein level (%)",
+       colour = "Protein",
+       fill = "Protein") +
+  theme_bw() +
+  theme(text = element_text(size = element_text_size))
+my_plot
+
+# Export
+for (output_format in output_formats) {
+  ggsave(filename = file.path(out_dir, experiment_id, paste0(experiment_id, "_logx.", output_format)),
+         plot = my_plot)
+}
+
+
+# Plot without legend
+my_plot <- my_plot +
+  theme(legend.position = "none")
+my_plot
+
+# Export
+for (output_format in output_formats) {
+  ggsave(filename = file.path(out_dir, experiment_id, paste0(experiment_id, "_logx_nolegend.", output_format)),
+         plot = my_plot,
+         height = 6, width = 6)
+}
+
+```
+
+
+# Titration western MSH3 9wk
+
+## Fit models
+
+``` {r titration_western_MSH3_9wk_fit, echo=TRUE, eval=TRUE, message=TRUE, warning=FALSE, fig.height=10, fig.width=15}
+
+# Experiment ID
+experiment_id <- names(MSH3aso_data)[[3]]
+experiment_id
+
+# Make results directory
+dir.create(file.path(out_dir, experiment_id),
+           recursive = TRUE)
+
+# Format data
+plot_data <- MSH3aso_data[[experiment_id]] %>%
+  pivot_longer(!dose_uM,
+               names_to = "label",
+               values_to = "level") %>%
+  separate_wider_delim(label, "_", names = c("gene", "rep")) %>%
+  dplyr::mutate(dose_uM = as.numeric(dose_uM),
+                level = as.numeric(level),
+                dose_uM_forlog = dose_uM + log_increment) %>% # Add increment (+0.001) to log the data
+  dplyr::filter(!is.na(level))
+
+# Plot using each formula
+my_fits <- lapply(model_names, plot_model_function,
+                  models = my_models,
+                  data = plot_data,
+                  xvar = "dose_uM",
+                  xlabel = "MSH3 ASO dose (µM)",
+                  yvar = "level",
+                  ylabel = "Relative protein level (%)",
+                  group_var = NA,
+                  group_label = NA,
+                  log_increment = log_increment,
+                  plot_se = TRUE)
+
+# Plot model fits
+my_plots <- lapply(my_fits, function(my_fit) {
+  my_fit$my_plot
+})
+wrap_plots(my_plots) +
+  plot_annotation(title = "Regression models",
+                  theme = theme(plot.title = element_text(hjust = 0.5, face = "bold")))
+
+# r2 table
+my_r2 <- lapply(my_fits, function(my_fit) {
+  my_fit[["r2"]]
+})
+r2_table <- data.frame(model_name = names(my_r2),
+                       r2 = unlist(my_r2)) %>%
+  tibble::rownames_to_column("model_number") %>%
+  arrange(-r2)
+
+# Display r2 table
+kbl(r2_table, caption = "R-squared") %>%
+  kable_styling(bootstrap_options = "striped")
+
+```
+
+
+## IC50
+
+``` {r titration_western_MSH3_9wk_IC50_calculate, echo=TRUE, eval=TRUE, message=TRUE, warning=FALSE}
+
+# Dose response model
+my_drm <- drm(level ~ dose_uM, data = plot_data, fct = LL.4())
+
+# Extract IC50 value
+ic50 <- ED(my_drm, 50)
+ic50_estimate <- ic50[[1]]
+ic50_se <- ic50[[2]]
+ic50_upper <- ic50_estimate + 1.96 * ic50_se
+ic50_lower <- ic50_estimate - 1.96 * ic50_se
+
+# Plot drm model
+plot(my_drm, main = "Dose-response curve using drc")
+abline(h = 50, col = "green", lty = 2)
+abline(v = ic50_estimate, col = "blue", lty = 2)
+
+
+# Calculate IC50 by interpolation
+ic50_interpolation <- ed_interpolation(data = plot_data,
+                                       response_var = "level",
+                                       pred_var = "dose_uM_forlog",
+                                       formula = as.formula("level ~ log(dose_uM_forlog)"),
+                                       model_function = "lm",
+                                       response_level = 50,
+                                       n_bootstrap = 1000,
+                                       confidence_level = 0.95)
+
+# Readjust for the log increment
+ic50_interpolation$ed <- ic50_interpolation$ed - log_increment
+ic50_interpolation$ci_lower <- ic50_interpolation$ci_lower - log_increment
+ic50_interpolation$ci_upper <- ic50_interpolation$ci_upper - log_increment
+
+# Plot linear model
+plot(level ~ dose_uM_forlog, 
+     data = ic50_interpolation$predicted_values,
+     main = "Dose-response curve using interpolation")
+abline(h = 50, col = "blue", lty = 2)
+abline(v = ic50_interpolation$ed, col = "blue", lty = 2)
+abline(v = ic50_interpolation$ci_lower, col = "lightblue", lty = 2)
+abline(v = ic50_interpolation$ci_upper, col = "lightblue", lty = 2)
+
+
+# Table of IC50
+ic50_table <- data.frame(method = c("drc", "lm_interpolation"),
+                         IC50 = c(ic50_estimate, ic50_interpolation$ed),
+                         ci_lower = c(ic50_lower, ic50_interpolation$ci_lower),
+                         ci_upper = c(ic50_upper, ic50_interpolation$ci_upper))
+
+# Display IC50 table
+kbl(ic50_table, caption = "IC50") %>%
+  kable_styling(bootstrap_options = "striped")
+
+```
+
+
+## Linear dose axis
+
+``` {r titration_western_MSH3_9wk_plot_linear, echo=TRUE, eval=TRUE, message=TRUE, warning=FALSE}
+
+# Plot
+my_plot <-
+  ggplot(plot_data, aes(x = dose_uM_forlog, y = level, colour = gene, fill = gene)) +
+  geom_point(size = point_size) +
+  stat_smooth(method = lm, 
+              formula = y ~ log(x), fullrange = TRUE, 
+              size = 1, alpha = 0.1) +
+  geom_segment(aes(x = -Inf, xend = ic50_interpolation$ed, 
+                   y = 50, yend = 50), 
+               colour = "black", linetype = "dashed", size = 0.5) +
+  geom_segment(aes(x = ic50_interpolation$ed, xend = ic50_interpolation$ed, 
+                   y = -Inf, yend = 50), 
+               colour = "black", linetype = "dashed", size = 0.5) +
+  geom_rect(aes(xmin = ic50_interpolation$ci_lower, xmax = ic50_interpolation$ci_upper,
+                ymin = -Inf, ymax = 50), 
+            fill = "darkgrey", alpha = 0.03, colour = NA) +
+  
+  
+  # geom_rect(aes(xmin = ic50_interpolation$ci_lower, xmax = ic50_interpolation$ci_upper,
+  #               ymin = 0, ymax = Inf), fill = "grey", alpha = 0.05, colour = NA) +
+  # geom_hline(yintercept = 50, colour = "black", linetype = "dashed") +
+  # geom_vline(xintercept = ic50_interpolation$ed, colour = "black", linetype = "dashed") +
+  scale_colour_manual(values = gene_colour) +
+  scale_fill_manual(values = gene_colour) +
+  scale_x_continuous(breaks = pretty_breaks()) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  labs(x = "MSH3 ASO dose (µM)",
+       y = "Relative MSH3 protein level (%)",
+       colour = "Protein",
+       fill = "Protein") +
+  theme_bw() +
+  theme(text = element_text(size = element_text_size))
+my_plot
+
+# Export
+for (output_format in output_formats) {
+  ggsave(filename = file.path(out_dir, experiment_id, paste0(experiment_id, "_linearx.", output_format)),
+         plot = my_plot)
+}
+
+# Plot without legend
+my_plot <- my_plot +
+  theme(legend.position = "none")
+my_plot
+
+# Export
+for (output_format in output_formats) {
+  ggsave(filename = file.path(out_dir, experiment_id, paste0(experiment_id, "_linearx_nolegend.", output_format)),
+         plot = my_plot,
+         height = 6, width = 6)
+}
+
+```
+
+
+## Log dose axis
+
+``` {r titration_western_MSH3_9wk_plot_log, echo=TRUE, eval=TRUE, message=TRUE, warning=FALSE}
+
+# Plot
+my_plot <-
+  ggplot(plot_data, aes(x = dose_uM_forlog, y = level, colour = gene, fill = gene)) +
+  geom_point(size = point_size) +
+  stat_smooth(method = lm, 
+              formula = y ~ x, fullrange = TRUE, 
+              size = 1, alpha = 0.1) +
+  geom_segment(aes(x = 0.001, xend = ic50_interpolation$ed, 
+                   y = 50, yend = 50), 
+               colour = "black", linetype = "dashed", size = 0.5) +
+  geom_segment(aes(x = ic50_interpolation$ed, xend = ic50_interpolation$ed, 
+                   y = -Inf, yend = 50), 
+               colour = "black", linetype = "dashed", size = 0.5) +
+  geom_rect(aes(xmin = ic50_interpolation$ci_lower, xmax = ic50_interpolation$ci_upper,
+                ymin = -Inf, ymax = 50), 
+            fill = "darkgrey", alpha = 0.03, colour = NA) +
+  scale_colour_manual(values = gene_colour) +
+  scale_fill_manual(values = gene_colour) +
+  scale_x_continuous(trans = "log2",
+                     breaks = c(0.001, 0.01, 0.1, 1, 2, 3),
+                     labels = function(x) {
+                       ifelse(x < 1, round(x, digits = 3), round(x, digits = 0))
+                     }) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  labs(x = "MSH3 ASO dose (µM)",
+       y = "Relative MSH3 protein level (%)",
+       colour = "Protein",
+       fill = "Protein") +
+  theme_bw() +
+  theme(text = element_text(size = element_text_size))
+my_plot
+#  I'M HERE!
+
+# Export
+for (output_format in output_formats) {
+  ggsave(filename = file.path(out_dir, experiment_id, paste0(experiment_id, "_logx.", output_format)),
+         plot = my_plot)
+}
+
+
+# Plot without legend
+my_plot <- my_plot +
+  theme(legend.position = "none")
+my_plot
+
+# Export
+for (output_format in output_formats) {
+  ggsave(filename = file.path(out_dir, experiment_id, paste0(experiment_id, "_logx_nolegend.", output_format)),
+         plot = my_plot,
+         height = 6, width = 6)
+}
+
+```
+
+
+# Duration response
+
+## Fit models
+
+``` {r duration_response_fit, echo=TRUE, eval=TRUE, message=TRUE, warning=FALSE, fig.height=10, fig.width=15}
+
+# Experiment ID
+experiment_id <- names(MSH3aso_data)[[4]]
+experiment_id
+
+# Make results directory
+dir.create(file.path(out_dir, experiment_id),
+           recursive = TRUE)
+
+# Format data
+plot_data <- MSH3aso_data[[experiment_id]] %>%
+  pivot_longer(!treatment_duration_weeks,
+               names_to = "label",
+               values_to = "level") %>%
+  separate_wider_delim(label, "_", names = c("treatment", "rep")) %>%
+  dplyr::mutate(treatment_duration_weeks = as.numeric(treatment_duration_weeks),
+                level = as.numeric(level) * 100) %>%
+  dplyr::filter(!is.na(level))
+
+# Relevel variables
+plot_data <- plot_data %>%
+  dplyr::mutate(treatment = fct_relevel(treatment, intersect(treatment_order, unique(plot_data$treatment))))
+
+
+# Plot using each formula
+my_fits <- lapply(model_names, plot_model_function,
+                  models = my_models,
+                  data = plot_data,
+                  xvar = "treatment_duration_weeks",
+                  xlabel = "Week",
+                  yvar = "level",
+                  ylabel = "Relative expression (%)",
+                  group_var = "treatment",
+                  group_label = "Treatment",
+                  log_increment = log_increment,
+                  plot_se = TRUE)
+
+# Plot model fits
+my_plots <- lapply(my_fits, function(my_fit) {
+  my_fit$my_plot
+})
+wrap_plots(my_plots) +
+  plot_annotation(title = "Regression models",
+                  theme = theme(plot.title = element_text(hjust = 0.5, face = "bold")))
+
+# r2 table
+my_r2 <- lapply(my_fits, function(my_fit) {
+  my_fit[["r2"]]
+})
+r2_table <- data.frame(model_name = names(my_r2),
+                       r2 = unlist(my_r2)) %>%
+  tibble::rownames_to_column("model_number") %>%
+  arrange(-r2)
+
+# Display r2 table
+kbl(r2_table, caption = "R-squared") %>%
+  kable_styling(bootstrap_options = "striped")
+
+```
+
+
+## Plot
+
+``` {r duration_response_plot, echo=TRUE, eval=TRUE, message=TRUE, warning=FALSE, fig.height=7, fig.width=10}
+
+# Plot
+my_plot <-
+  ggplot(plot_data, aes(x = treatment_duration_weeks, y = level, colour = treatment, fill = treatment)) +
+  geom_point(size = point_size) +
+  stat_smooth(method = lm, 
+              formula = y ~ log(x),
+              fullrange = FALSE, alpha = 0.2) +
+  scale_colour_manual(values = treatment_colour,
+                      labels = treatment_rename) +
+  scale_fill_manual(values = treatment_colour,
+                      labels = treatment_rename) +
+  scale_x_continuous(breaks = c(0, 3, 6, 9, 12, 15)) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  labs(x = "Weeks",
+       y = "Relative expression (%)",
+       colour = "Treatment",
+       fill = "Treatment") +
+  theme_bw() +
+  theme(text = element_text(size = element_text_size))
+my_plot
+
+# Export
+for (output_format in output_formats) {
+  ggsave(filename = file.path(out_dir, experiment_id, paste0(experiment_id, ".", output_format)),
+         plot = my_plot)
+}
+
+# Plot without legend
+my_plot <- my_plot +
+  theme(legend.position = "none")
+my_plot
+
+# Export
+for (output_format in output_formats) {
+  ggsave(filename = file.path(out_dir, experiment_id, paste0(experiment_id, "_nolegend.", output_format)),
+         plot = my_plot,
+         height = 6, width = 6)
+}
+
+```
+
+
+## Statistics
+
+### Descriptive statistics
+
+Mean, SD and SEM MSH3 level at each timepoint, for each treatment.
+
+``` {r duration_response_stats_descriptive, echo=TRUE, eval=TRUE, message=TRUE, warning=FALSE, fig.height=7, fig.width=10}
+
+# Descriptive statistics
+descriptive_stats <- plot_data %>%
+  group_by(treatment_duration_weeks, treatment) %>%
+  summarise(mean = mean(level),
+            sd = sd(level),
+            sem = sd(level)/sqrt(n())) %>%
+  ungroup()
+
+# Display table
+kbl(descriptive_stats, caption = "Descriptive statistics") %>%
+  kable_styling(bootstrap_options = "striped")
+
+```
+
+
+### Group mean
+
+This fits a repeated measures linear mixed-effects model ANOVA, `lmer(level ~ treatment * treatment_duration_weeks + (1|rep))`,  to control for changes over time and different biological replicates. It calculates the mean MSH3 levels for each treatment using estimated marginal means and performs posthoc pairwise comparisons. The results are displayed in a table, and the group means are visualised in a plot.
+
+``` {r duration_response_stats_groupmean, echo=TRUE, eval=TRUE, message=TRUE, warning=FALSE, fig.height=7, fig.width=10}
+
+# Repeated measures linear mixed-effects model ANOVA
+my_lm <- lmer(level ~ treatment * treatment_duration_weeks + (1|rep), data = plot_data)
+anova(my_lm)
+
+# Number of timecourses contributing to each group
+sample_count <- plot_data %>%
+  distinct(treatment_duration_weeks, treatment) %>%
+  group_by(treatment) %>%
+  dplyr::summarise(n_timepoints = n()) %>%
+  ungroup()
+
+# Posthoc test calculating and comparing group averages
+my_emm <- emmeans(my_lm, pairwise ~ treatment | treatment_duration_weeks) # Post-hoc tests of group averages
+
+# Extract group means
+group_mean <- as.data.frame(summary(my_emm)$emmeans) %>%
+  left_join(sample_count, by = join_by(treatment)) %>%
+  dplyr::mutate(SD = SE * sqrt(n_timepoints)) %>%
+  relocate(SD, .before = "SE")
+
+# Display group means
+kbl(group_mean, caption = "Mean MSH3 level for each treatment group") %>%
+  kable_styling(bootstrap_options = "striped")
+
+# Pairwise comparison of treatment groups
+group_mean_compare <- as.data.frame(summary(my_emm)$contrasts) %>%
+  dplyr::rename(p.adj = p.value) %>% # emmeans already adjusts for multiple comparisons using tukey
+  tidyr::separate(contrast, c("group1", "group2"), sep=" - ") %>%
+  dplyr::mutate(p.signif = symnum(p.adj,
+                                  corr = FALSE,
+                                  na = FALSE,
+                                  legend = FALSE,
+                                  cutpoints = c(0, 0.001, 0.01, 0.05, 0.1, 1),
+                                  symbols = c("***", "**", "*", ".", "")),
+                group1 = gsub("^\\(|\\)$", "", group1), # Remove brackets
+                group2 = gsub("^\\(|\\)$", "", group2)) # Remove brackets
+
+# Hide non-significant results
+if (hide_ns) {
+  group_mean_compare_plot <- group_mean_compare %>%
+    filter(as.numeric(p.adj) < 0.05)
+  } else {
+    group_mean_compare_plot <- pwc_result
+  }
+
+# Display pairwise comparisons
+kbl(group_mean_compare, caption = "Pairwise comparison of treatment group means") %>%
+  kable_styling(bootstrap_options = "striped")
+
+
+# Plot
+my_plot <-
+  ggplot(group_mean, aes(x = treatment, y = emmean)) +
+  geom_bar(stat = "identity",
+           colour = "black",
+           # aes(fill = treatment), alpha = 0.8) +
+           aes(fill = treatment)) +
+  geom_jitter(data = plot_data, 
+              aes(x = treatment, y = level, fill = treatment),
+              height = 0, width = 0.1,
+              size = 3, shape = 21, colour = "black", alpha = 0.8) +
+  geom_errorbar(aes(ymin = case_when(errorbar_metric == "CL" ~ lower.CL,
+                                     errorbar_metric == "SE" ~ emmean - SE,
+                                     errorbar_metric == "SD" ~ emmean - SD,
+                                     TRUE ~ NA),
+                    ymax = case_when(errorbar_metric == "CL" ~ upper.CL,
+                                     errorbar_metric == "SE" ~ emmean + SE,
+                                     errorbar_metric == "SD" ~ emmean + SD,
+                                     TRUE ~ NA)),
+                width = 0.2) +
+  stat_pvalue_manual(group_mean_compare_plot,
+                     label = "{p.signif}",
+                     y.position = ifelse(errorbar_metric == "CL",
+                                         1.1 * max(group_mean$upper.CL),
+                                         1.1 * (max(group_mean$emmean) + max(group_mean$SE))),
+                     step.increase = 0.1,
+                     vjust = 0.75,
+                     hide.ns = hide_ns,
+                     size = 6) +
+  scale_x_discrete(labels = treatment_rename,
+                   guide = guide_axis(angle = 45)) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  scale_colour_manual(values = treatment_colour) +
+  scale_fill_manual(values = treatment_colour,) +
+  labs(x = "Treatment",
+       y = "Relative MSH3 expression (%)",
+       colour = "Treatment",
+       fill = "Treatment") +
+  theme_bw() +
+  theme(text = element_text(size = element_text_size),
+        legend.position = "none")
+
+# Dispay plot
+print(my_plot)
+
+
+# Export plot
+for (output_format in output_formats) {
+  ggsave(filename = file.path(out_dir, experiment_id, paste0(experiment_id, "-pwc_group_means.", output_format)),
+         plot = my_plot,
+         height = 6, width = 6)
+}
+
+```
+
+
+### Group slope
+
+This calculates and compares the slopes of change in MSH3 levels for each treatment. The slopes are estimated using the emtrends function from the emmeans package, which fits a repeated measures linear mixed-effects model ANOVA. Posthoc pairwise comparisons are performed to compare the slopes between treatment groups. The results are displayed in a table, and the slopes are visualised in a plot.
+
+``` {r duration_response_stats_groupslope, echo=TRUE, eval=TRUE, message=TRUE, warning=FALSE}
+
+# Posthoc test calculating and comparing group slopes
+my_emt <- emtrends(my_lm, ~ treatment, var = "treatment_duration_weeks")
+
+# Extract group slopes
+group_slope <- as.data.frame(my_emt)
+
+# Display group slopes
+kbl(group_slope, caption = "Slope of change in MSH3 level for each treatment group") %>%
+  kable_styling(bootstrap_options = "striped")
+
+# Pairwise comparisons
+my_pwc <- pairs(my_emt)
+group_slope_compare <- data.frame(my_pwc) %>%
+  dplyr::rename(p.adj = p.value) %>% # emtrends already adjusts for multiple comparisons using tukey
+  tidyr::separate(contrast, c("group1", "group2"), sep=" - ") %>%
+  dplyr::mutate(p.signif = symnum(p.adj,
+                                  corr = FALSE,
+                                  na = FALSE,
+                                  legend = FALSE,
+                                  cutpoints = c(0, 0.001, 0.01, 0.05, 0.1, 1),
+                                  symbols = c("***", "**", "*", ".", "")))
+
+# Display pairwise comparisons
+kbl(group_slope_compare, caption = "Pairwise comparison of treatment group slopes") %>%
+  kable_styling(bootstrap_options = "striped")
+
+# Display group slopes
+plot(my_emt)
+
+```
+
+
+### Group mean at each timepoint
+
+This performs separate ANOVA (`aov(MSH3_level ~ treatment)`) and pairwise comparisons with posthoc Tukey's HSD tests for each time point to compare the treatment groups. The results show pairwise comparisons of treatment group means at each specific time point, providing insights into how treatments differ at each stage of the experiment. The results are displayed in separate tables for each time point.
+
+``` {r duration_response_stats_groupmean_eachtimepoint, echo=TRUE, eval=TRUE, message=TRUE, warning=FALSE}
+
+# Vector of time points
+my_timepoints <- unique(plot_data$treatment_duration_weeks)
+names(my_timepoints) <- my_timepoints
+
+# Perform ANOVA and Tukey's HSD at each time point
+group_mean_compare_timepoints <- lapply(my_timepoints, function(my_timepoint,
+                                                                plot_data) {
+  
+  # Filter data
+  my_data <- plot_data %>%
+    dplyr::filter(treatment_duration_weeks == my_timepoint)
+  
+  # ANOVA
+  my_aov <- aov(level ~ treatment, data = my_data)
+  
+  # Posthoc tukey's HSD for pairwise comparisons
+  my_pwc <- TukeyHSD(my_aov)
+  
+  # Tidy results
+  my_pwc_tidy <- tidy(my_pwc) %>%
+    dplyr::mutate(timepoint = my_timepoint,
+                  p.signif = symnum(adj.p.value,
+                                    corr = FALSE,
+                                    na = FALSE,
+                                    legend = FALSE,
+                                    cutpoints = c(0, 0.001, 0.01, 0.05, 0.1, 1),
+                                    symbols = c("***", "**", "*", ".", ""))) %>%
+    relocate(timepoint)
+  
+  # Output
+  return(my_pwc_tidy)
+  
+},
+plot_data = plot_data)
+
+# Edit names
+names(group_mean_compare_timepoints) <- paste0("week", names(group_mean_compare_timepoints))
+
+
+# Display tables
+for (table_name in names(group_mean_compare_timepoints)) {
+  print(kable(group_mean_compare_timepoints[[table_name]],
+              caption = paste(table_name, "pairwise comparison of treatment group means")))
+}
+
+```
+
+
+# MSH3ko western
+
+``` {r MSH3ko_western, echo=TRUE, eval=TRUE, message=TRUE, warning=FALSE, fig.height=7, fig.width=10}
+
+# Experiment ID
+experiment_id <- names(MSH3aso_data)[[5]]
+experiment_id
+
+# Make results directory
+dir.create(file.path(out_dir, experiment_id),
+           recursive = TRUE)
+
+# Format data
+plot_data <- MSH3aso_data[[experiment_id]] %>%
+  pivot_longer(!protein,
+               names_to = "label",
+               values_to = "level") %>%
+  separate_wider_delim(label, "_", names = c("genotype", "rep")) %>%
+  dplyr::mutate(level = as.numeric(level) * 100) %>%
+  dplyr::filter(!is.na(level))
+
+# Relevel variables
+plot_data <- plot_data %>%
+  dplyr::mutate(genotype = fct_relevel(genotype, intersect(genotype_order, unique(plot_data$genotype))))
+
+# Comparisons for stat_compare_means
+pairwise_comparisons <- lapply(combn(unique(plot_data$genotype), 2, simplify = FALSE), as.character)
+
+# t-test with correction
+ttest <- 
+  plot_data %>%
+  group_by(protein) %>%
+  t_test(level ~ genotype) %>%
+  adjust_pvalue(method = padj_method) %>%
+  add_significance(cutpoints = c(0, 0.001, 0.01, 0.05, 1),
+                   symbols = c("***", "**", "*", "ns")) %>%
+  add_y_position() %>%
+  ungroup()
+
+# Display t-test
+kbl(ttest, caption = "T-test") %>%
+  kable_styling(bootstrap_options = "striped")
+
+
+# ANOVA and corrected posthoc pairwise comparisons
+my_aov <- aov(level ~ genotype * protein, data = plot_data)
+my_emmeans <- emmeans(my_aov, pairwise ~ genotype | protein) # emmeans 'adjust' argument is giving odd results, with some p values getting more significant
+my_pwc <- as.data.frame(my_emmeans$contrasts) %>%
+  dplyr::mutate(group1 = str_split_fixed(contrast, " - ", 2)[, 1],
+                group2 = str_split_fixed(contrast, " - ", 2)[, 2],
+                p.adj = p.adjust(p.value, method = padj_method),
+                p.adj.signif = symnum(p.adj, corr = FALSE, na = FALSE, legend = FALSE,
+                                      cutpoints = c(0, 0.001, 0.01, 0.05, 1), 
+                                      symbols = c("***", "**", "*", "ns"))) %>%
+  relocate(c(group1, group2), .after = "contrast") %>%
+  relocate(c(p.adj, p.adj.signif), .after = "p.value")
+if (hide_ns) {
+  my_pwc_plot <- my_pwc %>%
+    dplyr::filter(p.adj < 0.05)
+} else {
+  my_pwc_plot <- my_pwc
+}
+y_max <- plot_data %>%
+  group_by(protein) %>%
+  dplyr::summarise(ymax = max(level, na.rm = TRUE))
+if (nrow(my_pwc_plot) > 0) {
+  my_pwc_plot <- my_pwc_plot %>%
+    dplyr::left_join(y_max, by = join_by(protein)) %>%
+    group_by(protein) %>%
+    dplyr::mutate(y.position = ymax + seq(0.1 * unique(ymax), 0.5 * unique(ymax), length.out = n())) %>%
+    ungroup()
+} else {
+  my_pwc_plot[1,] <- NA
+  my_pwc_plot$y.position <- NA
+}
+
+# Display ANOVA posthoc
+kbl(my_pwc, caption = "ANOVA with corrected posthoc pairwise comparisons") %>%
+  kable_styling(bootstrap_options = "striped")
+
+
+# Plot
+my_plot <-
+  ggplot(plot_data, aes(x = genotype, y = level)) +
+  facet_wrap(vars(protein)) +
+  stat_summary(aes(fill = genotype),
+               # fun = mean, colour = "black", geom = "bar", alpha = 0.8) +
+               fun = mean, colour = "black", geom = "bar") +
+  stat_summary(fun.data = mean_se,  
+               geom = "errorbar", width = 0.2) +
+  geom_jitter(aes(fill = genotype),
+              width = 0.2, height = 0, size = point_size, colour = "black", shape = 21) +
+  # geom_violin(trim = TRUE) +
+  # geom_boxplot(outlier.shape = NA, width = 0.2) +
+  # geom_jitter(aes(colour = genotype, fill = genotype),
+  #             width = 0.2, height = 0, size = point_size, alpha = 0.75) +
+  # stat_summary(fun = mean, geom = "point", shape = 18, size = point_size + 2, show.legend = FALSE) +
+  # stat_summary(fun = mean, geom = "text", show.legend = FALSE, vjust = -1, size = point_size + 2,
+  #              aes(label = after_stat(round(y, 1)))) +
+  # stat_compare_means(comparisons = pairwise_comparisons,
+  #                    label = "p.signif",
+  #                    hide.ns = hide_ns) +
+  # stat_pvalue_manual(ttest, hide.ns = hide_ns, label = "p.adj") +
+  stat_pvalue_manual(my_pwc_plot, hide.ns = hide_ns, label = "p.adj.signif", tip.length = 0.01) +
+  geom_hline(yintercept = 0, colour = "darkgrey") +
+  geom_hline(yintercept = 100, colour = "darkgrey", linetype = "dashed") +
+  scale_colour_manual(values = genotype_colour) +
+  scale_fill_manual(values = genotype_colour) +
+  scale_x_discrete(labels = genotype_rename,
+                   guide = guide_axis(angle = 45)) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  labs(x = "Genotype",
+       y = "Relative protein level (%)",
+       colour = "Genotype",
+       fill = "Genotype") +
+  theme_bw() +
+  theme(text = element_text(size = element_text_size),
+        legend.position = "none")
+my_plot
+
+
+  
+# Export
+for (output_format in output_formats) {
+  ggsave(filename = file.path(out_dir, experiment_id, paste0(experiment_id, ".", output_format)),
+         plot = my_plot,
+         height = 6, width = 6)
+}
+
+```
+
+
+# Small pool PCR
+
+Data from FAN1ko and unedited expansion and contraction tables has been combined into a single facetted plot.
+
+## Analysis
+
+``` {r sppcr_analysis, echo=TRUE, eval=TRUE, message=TRUE, warning=FALSE}
+
+# Experiment IDs
+experiment_ids <- setNames(names(MSH3aso_data)[6:9], names(MSH3aso_data)[6:9])
+
+# Make results directory
+dir.create(file.path(out_dir, "sppcr"),
+           recursive = TRUE)
+
+# Format data
+plot_data <- lapply(experiment_ids, function(experiment_id,
+                                             MSH3aso_data,
+                                             treatment_rename) {
+   
+  # Extract annotation from experiment ID
+  experiment_id_components <- as.character(str_split(experiment_id, "_", simplify = TRUE))
+  my_genotype = experiment_id_components[[2]]
+  my_metric = experiment_id_components[[3]]
+  
+  # Format
+  my_data <- MSH3aso_data[[experiment_id]] %>%
+    pivot_longer(!Metric,
+               names_to = "label",
+               values_to = "level") %>%
+    separate_wider_delim(label, "_", names = c("treatment", "rep")) %>%
+    dplyr::mutate(level = as.numeric(level)) %>%
+    dplyr::filter(!is.na(level)) %>%
+    dplyr::mutate(genotype = my_genotype,
+                  metric = my_metric,
+                  genotype = ifelse(genotype == "unedited", "Unedited", genotype)) %>%
+    relocate(c(metric, genotype), .after = "Metric")
+  
+  # Output
+  return(my_data)
+  
+},
+MSH3aso_data = MSH3aso_data,
+treatment_rename = treatment_rename)
+
+# rbind
+plot_data <- rbindlist(plot_data)
+
+# Exclude SCR treatment from unedited genotype
+plot_data <- plot_data %>%
+  dplyr::filter(!(genotype == "Unedited" & treatment == "SCRaso-3uM"))
+
+# Relevel
+plot_data <- plot_data %>%
+  dplyr::mutate(treatment = fct_relevel(treatment, intersect(treatment_order, unique(plot_data$treatment))),
+                # genotype = fct_relevel(genotype, intersect(genotype_order, unique(plot_data$genotype))),
+                genotype = fct_relevel(genotype, c("FAN1ko", "Unedited")),
+                Metric = fct_relevel(Metric, c("Expansions per lane", "Contractions per lane")))
+
+# Add to treatment_rename
+my_treatment_rename <- sapply(names(treatment_rename), function(x) {
+  if (x == "Baseline") {
+    paste(treatment_rename[x], "(36d)")
+  } else {
+    paste(treatment_rename[x], "(12wks)")
+  }
+}, USE.NAMES = TRUE)
+
+# t-test
+ttest <- 
+  plot_data %>%
+  group_by(Metric, genotype) %>%
+  t_test(level ~ treatment) %>%
+  adjust_pvalue(method = padj_method) %>%
+  add_significance(cutpoints = c(0, 0.001, 0.01, 0.05, 1),
+                   symbols = c("***", "**", "*", "ns")) %>%
+  add_y_position() %>%
+  ungroup()
+
+# Display t-test
+kbl(ttest, caption = "T-test") %>%
+  kable_styling(bootstrap_options = "striped")
+
+```
+
+
+## Plot together
+
+``` {r sppcr_plot_together, echo=TRUE, eval=TRUE, message=TRUE, warning=FALSE, fig.height=10, fig.width=12}
+
+# Plot
+my_plot <-
+  ggplot(plot_data, aes(x = treatment, y = level)) +
+  facet_grid(cols = vars(Metric),
+             rows = vars(genotype),
+             labeller = labeller(genotype = genotype_rename)) +
+  geom_hline(yintercept = 0, colour = "darkgrey") +
+  stat_summary(aes(fill = treatment),
+               # fun = mean, colour = "black", geom = "bar", alpha = 0.8) +
+               fun = mean, colour = "black", geom = "bar") +
+  stat_summary(fun.data = mean_se,  
+               geom = "errorbar", width = 0.2) +
+  geom_jitter(aes(fill = treatment),
+              width = 0.2, height = 0, size = point_size, colour = "black", shape = 21) +
+  # geom_violin(trim = TRUE) +
+  # geom_boxplot(outlier.shape = NA, width = 0.2) +
+  # geom_jitter(aes(colour = treatment, fill = treatment),
+  #             width = 0.1, height = 0, size = point_size, alpha = 0.8) +
+  # stat_summary(fun = mean, geom = "point", shape = 18, size = point_size + 2, show.legend = FALSE) +
+  # stat_summary(fun = mean, geom = "text", show.legend = FALSE, vjust = -1, size = point_size + 2,
+  #              aes(label = after_stat(round(y, 1)))) +
+  stat_pvalue_manual(ttest, hide.ns = hide_ns, label = "p.adj", tip.length = 0.01) +
+  scale_colour_manual(values = treatment_colour) +
+  scale_fill_manual(values = treatment_colour) +
+  scale_x_discrete(labels = my_treatment_rename,
+                   guide = guide_axis(angle = 45)) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  labs(x = "Treatment",
+       y = "Instability events per lane",
+       colour = "Treatment",
+       fill = "Treatment") +
+  theme_bw() +
+  theme(text = element_text(size = element_text_size),
+        legend.position = "none")
+my_plot
+
+# Export
+for (output_format in output_formats) {
+  ggsave(filename = file.path(out_dir, "sppcr", paste0(experiment_id, ".", output_format)),
+         plot = my_plot,
+         height = 12, width = 12)
+}
+
+```
+
+
+## Plot genotypes separately
+
+``` {r sppcr_plot_genotypes_separately, echo=TRUE, eval=TRUE, message=TRUE, warning=FALSE, fig.height=8, fig.width=10}
+
+# Genotype vector
+my_genotypes <- as.character(unique(plot_data$genotype))
+names(my_genotypes) <- my_genotypes
+
+# Plot
+my_plots <- lapply(my_genotypes, function(my_genotype,
+                                          plot_data,
+                                          ttest) {
+  # Filter data
+  my_data <- plot_data %>%
+    dplyr::filter(genotype == my_genotype)
+  
+  # Plot
+  my_plot <-
+    ggplot(my_data, aes(x = treatment, y = level)) +
+    facet_wrap(vars(Metric)) +
+    geom_hline(yintercept = 0, colour = "darkgrey") +
+    stat_summary(aes(fill = treatment),
+                 # fun = mean, colour = "black", geom = "bar", alpha = 0.8) +
+                 fun = mean, colour = "black", geom = "bar") +
+    stat_summary(fun.data = mean_se,  
+                 geom = "errorbar", width = 0.2) +
+    geom_jitter(aes(fill = treatment),
+                width = 0.2, height = 0, size = point_size, colour = "black", shape = 21) +
+    stat_pvalue_manual(ttest, hide.ns = hide_ns, label = "p.adj", tip.length = 0.01) +
+    scale_colour_manual(values = treatment_colour) +
+    scale_fill_manual(values = treatment_colour) +
+    scale_x_discrete(labels = my_treatment_rename,
+                     guide = guide_axis(angle = 45)) +
+    scale_y_continuous(breaks = pretty_breaks()) +
+    labs(x = "Treatment",
+         y = "Instability events per lane",
+         colour = "Treatment",
+         fill = "Treatment") +
+    theme_bw() +
+    theme(text = element_text(size = element_text_size),
+          legend.position = "none")
+  
+  # Output
+  return(my_plot)
+  
+},
+plot_data = plot_data,
+ttest = ttest)
+
+# Display plots
+for (my_plot in my_plots) {
+  print(my_plot)
+}
+
+# Export
+for (plot_name in names(my_plots)) {
+  my_plot <- my_plots[[plot_name]]
+  for (output_format in output_formats) {
+    ggsave(filename = file.path(out_dir, "sppcr", paste0(experiment_id, paste0("_", plot_name, "."), output_format)),
+           plot = my_plot,
+           height = 6, width = 10)
+  }
+}
+
+```
+
+
+## Plot genotypes and metrics separately
+
+``` {r sppcr_plot_genotypes_metrics_separately, echo=TRUE, eval=TRUE, message=TRUE, warning=FALSE, fig.height=7, fig.width=7}
+
+# Genotype vector
+my_genotypes <- as.character(unique(plot_data$genotype))
+names(my_genotypes) <- my_genotypes
+
+# Metric vector
+my_metrics <- as.character(unique(plot_data$Metric))
+names(my_metrics) <- my_metrics
+
+# Plot
+my_plots <- lapply(my_genotypes, function(my_genotype,
+                                          plot_data,
+                                          ttest,
+                                          my_metrics) {
+  
+  # Plot for each metric
+  my_plot_metrics <- lapply(my_metrics, function(my_metric,
+                                                 my_genotype) {
+    
+    # # Manual
+    # my_metric = my_metrics[[1]]
+    
+    # Filter data
+    my_data <- plot_data %>%
+      dplyr::filter(genotype == my_genotype,
+                    Metric == my_metric) 
+    
+    # Plot
+    my_plot <-
+      ggplot(my_data, aes(x = treatment, y = level)) +
+      geom_hline(yintercept = 0, colour = "darkgrey") +
+      stat_summary(aes(fill = treatment),
+                   # fun = mean, colour = "black", geom = "bar", alpha = 0.8) +
+                   fun = mean, colour = "black", geom = "bar") +
+      stat_summary(fun.data = mean_se,  
+                   geom = "errorbar", width = 0.2) +
+      geom_jitter(aes(fill = treatment),
+                  width = 0.2, height = 0, size = point_size, colour = "black", shape = 21) +
+      stat_pvalue_manual(ttest, hide.ns = hide_ns, label = "p.adj", tip.length = 0.01) +
+      scale_colour_manual(values = treatment_colour) +
+      scale_fill_manual(values = treatment_colour) +
+      scale_x_discrete(labels = my_treatment_rename,
+                       guide = guide_axis(angle = 45)) +
+      scale_y_continuous(breaks = pretty_breaks()) +
+      labs(x = "Treatment",
+           y = "Instability events per lane",
+           colour = "Treatment",
+           fill = "Treatment") +
+      theme_bw() +
+      theme(text = element_text(size = element_text_size),
+            legend.position = "none")
+    
+    # Output
+    return(my_plot)
+    
+  },
+  my_genotype = my_genotype)
+  
+  # Output
+  return(my_plot_metrics)
+  
+},
+plot_data = plot_data,
+ttest = ttest,
+my_metrics = my_metrics)
+
+
+# Flatten
+my_plots <- unlist(my_plots, recursive = FALSE)
+
+# Display plots
+for (my_plot in my_plots) {
+  print(my_plot)
+}
+
+# Export
+for (plot_name in names(my_plots)) {
+  my_plot <- my_plots[[plot_name]]
+  for (output_format in output_formats) {
+    ggsave(filename = file.path(out_dir, "sppcr", paste0(experiment_id, paste0("_", plot_name, "."), output_format)),
+           plot = my_plot,
+           height = 6, width = 6)
+  }
+}
+
+```
+
+
+# In vivo titration
+
+## Import data
+
+``` {r in_vivo_data, echo=TRUE, eval=TRUE, message=TRUE, warning=FALSE, fig.height=7, fig.width=14}
+
+# Experiment IDs
+experiment_ids <- setNames(names(MSH3aso_data)[10:11], names(MSH3aso_data)[10:11])
+
+# Make results directory
+dir.create(file.path(out_dir, "in_vivo_titration"),
+           recursive = TRUE)
+
+# Format data
+plot_data <- lapply(experiment_ids, function(experiment_id,
+                                             MSH3aso_data) {
+  
+  # Format
+  my_data <- MSH3aso_data[[experiment_id]] %>%
+    pivot_longer(!tissue,
+               names_to = "label",
+               values_to = "level") %>%
+    separate_wider_delim(label, "_", names = c("treatment", "rep")) %>%
+    dplyr::mutate(level = as.numeric(level),
+                  experiment_id = experiment_id) %>%
+    dplyr::filter(!is.na(level)) %>%
+    relocate(experiment_id)
+    
+  # Output
+  return(my_data)
+  
+},
+MSH3aso_data = MSH3aso_data)
+
+# rbind
+plot_data <- rbindlist(plot_data)
+
+# Relevel
+plot_data <- plot_data %>%
+  dplyr::mutate(tissue = fct_relevel(tissue, intersect(tissue_order, unique(plot_data$tissue))),
+                treatment = fct_relevel(treatment, intersect(treatment, unique(plot_data$treatment))))
+
+```
+
+
+## Experiments combined
+
+Data from two experiments have been combined for stats and plotting.
+
+``` {r in_vivo_experiments_combined, echo=TRUE, eval=TRUE, message=TRUE, warning=FALSE, fig.height=7, fig.width=14}
+
+# t-test
+ttest <- 
+  plot_data %>%
+  group_by(tissue) %>%
+  t_test(level ~ treatment) %>%
+  adjust_pvalue(method = padj_method) %>%
+  add_significance(cutpoints = c(0, 0.001, 0.01, 0.05, 1),
+                   symbols = c("***", "**", "*", "ns")) %>%
+  add_y_position() %>%
+  ungroup()
+
+# Display t-test
+kbl(ttest, caption = "T-test") %>%
+  kable_styling(bootstrap_options = "striped")
+
+
+
+# ANOVA and corrected posthoc pairwise comparisons
+my_aov <- aov(level ~ treatment * tissue, data = plot_data)
+my_emmeans <- emmeans(my_aov, pairwise ~ treatment | tissue) # emmeans 'adjust' argument is giving odd results, with some p values getting more significant
+my_pwc <- as.data.frame(my_emmeans$contrasts) %>%
+  dplyr::mutate(group1 = str_split_fixed(contrast, " - ", 2)[, 1],
+                group2 = str_split_fixed(contrast, " - ", 2)[, 2],
+                p.adj = p.adjust(p.value, method = padj_method),
+                p.adj.signif = symnum(p.adj, corr = FALSE, na = FALSE, legend = FALSE,
+                                      cutpoints = c(0, 0.001, 0.01, 0.05, 1), 
+                                      symbols = c("***", "**", "*", "ns"))) %>%
+  relocate(c(group1, group2), .after = "contrast") %>%
+  relocate(c(p.adj, p.adj.signif), .after = "p.value")
+if (hide_ns) {
+  my_pwc_plot <- my_pwc %>%
+    dplyr::filter(p.adj < 0.05)
+} else {
+  my_pwc_plot <- my_pwc
+}
+y_max <- plot_data %>%
+  group_by(tissue) %>%
+  dplyr::summarise(ymax = max(level, na.rm = TRUE))
+if (nrow(my_pwc_plot) > 0) {
+  my_pwc_plot <- my_pwc_plot %>%
+    dplyr::left_join(y_max, by = join_by(tissue)) %>%
+    group_by(tissue) %>%
+    dplyr::mutate(y.position = ymax + seq(0.1 * unique(ymax), 0.5 * unique(ymax), length.out = n())) %>%
+    ungroup()
+} else {
+  my_pwc_plot[1,] <- NA
+  my_pwc_plot$y.position <- NA
+}
+
+# Display ANOVA posthoc
+kbl(my_pwc, caption = "ANOVA with corrected posthoc pairwise comparisons") %>%
+  kable_styling(bootstrap_options = "striped")
+
+# Shape rename
+my_shape_rename <- setNames(c("1", "2"), unique(plot_data$experiment_id))
+
+# Plot
+my_plot <-
+  ggplot(plot_data, aes(x = treatment, y = level)) +
+  facet_wrap(vars(tissue), nrow = 1, scales = "free_x") +
+  stat_summary(aes(fill = treatment),
+               # fun = mean, colour = "black", geom = "bar", alpha = 0.8) +
+               fun = mean, colour = "black", geom = "bar") +
+  stat_summary(fun.data = mean_se,  
+               geom = "errorbar", width = 0.2) +
+  geom_jitter(aes(fill = treatment, shape = experiment_id),
+              width = 0.2, height = 0, size = point_size, colour = "black") +
+  # geom_violin(trim = TRUE) +
+  # geom_boxplot(outlier.shape = NA, width = 0.2) +
+  # geom_jitter(aes(colour = treatment, fill = treatment, shape = experiment_id),
+  #             width = 0.1, height = 0, size = point_size, alpha = 0.8) +
+  # stat_summary(fun = mean, geom = "point", shape = 18, size = point_size + 2, show.legend = FALSE) +
+  # stat_summary(fun = mean, geom = "text", show.legend = FALSE, vjust = -1, size = point_size + 2,
+  #              aes(label = after_stat(round(y, 1)))) +
+  geom_hline(yintercept = 0, colour = "darkgrey") +
+  geom_hline(yintercept = 100, colour = "darkgrey", linetype = "dashed") +
+  # stat_pvalue_manual(ttest, hide.ns = hide_ns, label = "p.adj.signif")
+  stat_pvalue_manual(my_pwc_plot, label = "p.adj.signif", hide.ns = TRUE, tip.length = 0.01) +
+  scale_x_discrete(labels = treatment_ionis_rename,
+                   guide = guide_axis(angle = 45)) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  scale_colour_manual(values = treatment_ionis_colour,
+                      labels = treatment_ionis_rename) +
+  scale_fill_manual(values = treatment_ionis_colour,
+                    labels = treatment_ionis_rename) +
+  # scale_shape_discrete(labels = my_shape_rename) +
+  scale_shape_manual(values = c(21, 24),
+                     labels = my_shape_rename) +
+  labs(x = "Treatment",
+       y = "Relative expression (%)",
+       colour = "Treatment",
+       fill = "Treatment",
+       shape = "Experiment") +
+  theme_minimal() +
+  theme(text = element_text(size = element_text_size))
+my_plot
+
+# Export
+for (output_format in output_formats) {
+  ggsave(filename = file.path(out_dir, "in_vivo_titration", paste0("in_vivo_titration-combined", ".", output_format)),
+         plot = my_plot,
+         height = 7, width = 14)
+}
+
+```
+
+
+## Experiment separated
+
+Data from the two experiments kept separate for stats and plotting.
+
+``` {r in_vivo_experiments_separate, echo=TRUE, eval=TRUE, message=TRUE, warning=FALSE, fig.height=7, fig.width=14}
+
+# Vector of experiments
+my_experiment_names <- unique(plot_data$experiment_id)
+names(my_experiment_names) <- my_experiment_names
+
+# Plot
+my_plots <- lapply(my_experiment_names, function(my_experiment_name,
+                                                 plot_data,
+                                                 padj_method,
+                                                 hide_ns,
+                                                 treatment_ionis_rename,
+                                                 treatment_ionis_colour,
+                                                 element_text_size) {
+  
+  # Filter data
+  my_data <- plot_data %>%
+    dplyr::filter(experiment_id == my_experiment_name)
+  
+  # t-test
+  ttest <- 
+    my_data %>%
+    group_by(tissue) %>%
+    t_test(level ~ treatment) %>%
+    adjust_pvalue(method = padj_method) %>%
+    add_significance(cutpoints = c(0, 0.001, 0.01, 0.05, 1),
+                     symbols = c("***", "**", "*", "ns")) %>%
+    add_y_position() %>%
+    ungroup()
+  
+  
+  # ANOVA and corrected posthoc pairwise comparisons
+  my_aov <- aov(level ~ treatment * tissue, data = my_data)
+  my_emmeans <- emmeans(my_aov, pairwise ~ treatment | tissue) # emmeans 'adjust' argument is giving odd results, with some p values getting more significant
+  my_pwc <- as.data.frame(my_emmeans$contrasts) %>%
+    dplyr::mutate(group1 = str_split_fixed(contrast, " - ", 2)[, 1],
+                  group2 = str_split_fixed(contrast, " - ", 2)[, 2],
+                  p.adj = p.adjust(p.value, method = padj_method),
+                  p.adj.signif = symnum(p.adj, corr = FALSE, na = FALSE, legend = FALSE,
+                                        cutpoints = c(0, 0.001, 0.01, 0.05, 1), 
+                                        symbols = c("***", "**", "*", "ns"))) %>%
+    relocate(c(group1, group2), .after = "contrast") %>%
+    relocate(c(p.adj, p.adj.signif), .after = "p.value")
+  if (hide_ns) {
+    my_pwc_plot <- my_pwc %>%
+      dplyr::filter(p.adj < 0.05)
+  } else {
+    my_pwc_plot <- my_pwc
+  }
+  y_max <- my_data %>%
+    group_by(tissue) %>%
+    dplyr::summarise(ymax = max(level, na.rm = TRUE))
+  if (nrow(my_pwc_plot) > 0) {
+    my_pwc_plot <- my_pwc_plot %>%
+      dplyr::left_join(y_max, by = join_by(tissue)) %>%
+      group_by(tissue) %>%
+      dplyr::mutate(y.position = ymax + seq(0.1 * unique(ymax), 0.5 * unique(ymax), length.out = n())) %>%
+      ungroup()
+  } else {
+    my_pwc_plot[1,] <- NA
+    my_pwc_plot$y.position <- NA
+  }
+  
+  # Plot
+  my_plot <-
+    ggplot(my_data, aes(x = treatment, y = level)) +
+    facet_wrap(vars(tissue), nrow = 1, scales = "free_x") +
+    stat_summary(aes(fill = treatment),
+                 # fun = mean, colour = "black", geom = "bar", alpha = 0.8) +
+                 fun = mean, colour = "black", geom = "bar") +
+    stat_summary(fun.data = mean_se,  
+                 geom = "errorbar", width = 0.2) +
+    geom_jitter(aes(fill = treatment),
+                width = 0.2, height = 0, size = point_size, colour = "black", shape = 21) +
+    geom_hline(yintercept = 0, colour = "darkgrey") +
+    geom_hline(yintercept = 100, colour = "darkgrey", linetype = "dashed") +
+    # stat_pvalue_manual(ttest, hide.ns = hide_ns, label = "p.adj.signif")
+    stat_pvalue_manual(my_pwc_plot, label = "p.adj.signif", hide.ns = hide_ns, tip.length = 0.01) +
+    scale_x_discrete(labels = treatment_ionis_rename,
+                     guide = guide_axis(angle = 45)) +
+    scale_y_continuous(breaks = pretty_breaks()) +
+    scale_colour_manual(values = treatment_ionis_colour) +
+    scale_fill_manual(values = treatment_ionis_colour) +
+    labs(x = "Treatment",
+         y = "Relative expression (%)",
+         colour = "Treatment",
+         fill = "Treatment") +
+    theme_minimal() +
+    theme(text = element_text(size = element_text_size),
+          legend.position = "none")
+  
+  # Output
+  out <- mget(c("ttest", "my_pwc", "my_plot"))
+  return(out)
+  
+},
+plot_data = plot_data,
+padj_method = padj_method,
+hide_ns = hide_ns,
+treatment_ionis_rename = treatment_ionis_rename,
+treatment_ionis_colour = treatment_ionis_colour,
+element_text_size = element_text_size)
+
+# Display ttests
+my_ttests <- lapply(my_experiment_names, function(my_experiment_name,
+                                                  my_plots) {
+  my_plots[[my_experiment_name]]$ttest
+},
+my_plots = my_plots)
+for (my_experiment_name in my_experiment_names) {
+  my_ttest <- my_ttests[[my_experiment_name]]
+  print(kable(my_ttest, caption = paste(my_experiment_name, "t-test")))
+}
+
+# Display ANOVA posthoc
+my_pwcs <- lapply(my_experiment_names, function(my_experiment_name,
+                                                my_plots) {
+  my_plots[[my_experiment_name]]$my_pwc
+},
+my_plots = my_plots)
+for (my_experiment_name in my_experiment_names) {
+  my_pwc <- my_pwcs[[my_experiment_name]]
+  print(kable(my_pwc, caption = paste(my_experiment_name, "ANOVA with corrected posthoc pairwise comparisons")))
+}
+
+# Display plots
+my_bars <- lapply(my_experiment_names, function(my_experiment_name,
+                                                my_plots) {
+  my_plots[[my_experiment_name]]$my_plot
+},
+my_plots = my_plots)
+for (my_experiment_name in my_experiment_names) {
+  print(my_experiment_name)
+  print(my_bars[[my_experiment_name]])
+}
+
+# Export plots
+# for (my_experiment_name in my_experiment_names) {
+#   for (output_format in output_formats) {
+#   ggsave(filename = file.path(out_dir, "in_vivo_titration", paste0("in_vivo_titration", "_", my_experiment_name, ".", output_format)),
+#          plot = my_bars[[my_experiment_name]],
+#          height = 6, width = 12)
+#   }
+# }
+
+# Export experiment 1 plot
+for (output_format in output_formats) {
+  ggsave(filename = file.path(out_dir, "in_vivo_titration", paste0("in_vivo_titration-experiment1", ".", output_format)),
+         plot = my_bars[[my_experiment_names[[1]]]],
+         height = 6, width = 12)
+}
+
+# Export experiment 2 plot
+for (output_format in output_formats) {
+  ggsave(filename = file.path(out_dir, "in_vivo_titration", paste0("in_vivo_titration-experiment2", ".", output_format)),
+         plot = my_bars[[my_experiment_names[[2]]]],
+         height = 6, width = 9)
+}
+
+```
+
+
+## Combined experiments with SCR separate
+
+``` {r in_vivo_experiments_SCRseparate, echo=TRUE, eval=TRUE, message=TRUE, warning=FALSE, fig.height=7, fig.width=14}
+
+# List of plots
+my_treatment_groups <- list(MSH3aso = c("Vehicle", "3ug", "10ug", "30ug"),
+                            SCRaso = c("Vehicle", "SCRaso"))
+
+# Plot
+my_plots <- lapply(my_treatment_groups, function(my_treatment_group,
+                                                 plot_data,
+                                                 padj_method,
+                                                 hide_ns,
+                                                 treatment_ionis_rename,
+                                                 treatment_ionis_colour,
+                                                 element_text_size) {
+  
+  # Filter data
+  my_data <- plot_data %>%
+    dplyr::filter(treatment %in% my_treatment_group)
+  
+  # Filter to keep only tissues where all treatments are present
+  my_data <- my_data %>%
+    group_by(tissue) %>%
+    filter(all(my_treatment_group %in% treatment)) %>%
+    ungroup()
+  
+  # t-test
+  ttest <- 
+    my_data %>%
+    group_by(tissue) %>%
+    t_test(level ~ treatment) %>%
+    adjust_pvalue(method = padj_method) %>%
+    add_significance(cutpoints = c(0, 0.001, 0.01, 0.05, 1),
+                     symbols = c("***", "**", "*", "ns")) %>%
+    add_y_position() %>%
+    ungroup()
+  
+  
+  # ANOVA and corrected posthoc pairwise comparisons
+  my_aov <- aov(level ~ treatment * tissue, data = my_data)
+  my_emmeans <- emmeans(my_aov, pairwise ~ treatment | tissue) # emmeans 'adjust' argument is giving odd results, with some p values getting more significant
+  my_pwc <- as.data.frame(my_emmeans$contrasts) %>%
+    dplyr::mutate(group1 = str_split_fixed(contrast, " - ", 2)[, 1],
+                  group2 = str_split_fixed(contrast, " - ", 2)[, 2],
+                  p.adj = p.adjust(p.value, method = padj_method),
+                  p.adj.signif = symnum(p.adj, corr = FALSE, na = FALSE, legend = FALSE,
+                                        cutpoints = c(0, 0.001, 0.01, 0.05, 1), 
+                                        symbols = c("***", "**", "*", "ns"))) %>%
+    relocate(c(group1, group2), .after = "contrast") %>%
+    relocate(c(p.adj, p.adj.signif), .after = "p.value")
+  if (hide_ns) {
+    my_pwc_plot <- my_pwc %>%
+      dplyr::filter(p.adj < 0.05)
+  } else {
+    my_pwc_plot <- my_pwc
+  }
+  y_max <- my_data %>%
+    group_by(tissue) %>%
+    dplyr::summarise(ymax = max(level, na.rm = TRUE))
+  if (nrow(my_pwc_plot) > 0) {
+    my_pwc_plot <- my_pwc_plot %>%
+      dplyr::left_join(y_max, by = join_by(tissue)) %>%
+      group_by(tissue) %>%
+      dplyr::mutate(y.position = ymax + seq(0.1 * unique(ymax), 0.5 * unique(ymax), length.out = n())) %>%
+      ungroup()
+  } else {
+    my_pwc_plot[1,] <- NA
+    my_pwc_plot$y.position <- NA
+  }
+  
+  # Plot
+  my_plot <-
+    ggplot(my_data, aes(x = treatment, y = level)) +
+    facet_wrap(vars(tissue), nrow = 1, scales = "free_x") +
+    stat_summary(aes(fill = treatment),
+                 # fun = mean, colour = "black", geom = "bar", alpha = 0.8) +
+                 fun = mean, colour = "black", geom = "bar") +
+    stat_summary(fun.data = mean_se,  
+                 geom = "errorbar", width = 0.2) +
+    geom_jitter(aes(fill = treatment),
+                width = 0.2, height = 0, size = point_size, colour = "black", shape = 21) +
+    geom_hline(yintercept = 0, colour = "darkgrey") +
+    geom_hline(yintercept = 100, colour = "darkgrey", linetype = "dashed") +
+    # stat_pvalue_manual(ttest, hide.ns = hide_ns, label = "p.adj.signif")
+    stat_pvalue_manual(my_pwc_plot, label = "p.adj.signif", hide.ns = hide_ns, tip.length = 0.01) +
+    scale_x_discrete(labels = treatment_ionis_rename,
+                     guide = guide_axis(angle = 45)) +
+    scale_y_continuous(breaks = pretty_breaks()) +
+    scale_colour_manual(values = treatment_ionis_colour) +
+    scale_fill_manual(values = treatment_ionis_colour) +
+    labs(x = "Treatment",
+         y = "Relative expression (%)",
+         colour = "Treatment",
+         fill = "Treatment") +
+    theme_minimal() +
+    theme(text = element_text(size = element_text_size),
+          legend.position = "none")
+  
+  # Output
+  out <- mget(c("ttest", "my_pwc", "my_plot"))
+  return(out)
+  
+},
+plot_data = plot_data,
+padj_method = padj_method,
+hide_ns = hide_ns,
+treatment_ionis_rename = treatment_ionis_rename,
+treatment_ionis_colour = treatment_ionis_colour,
+element_text_size = element_text_size)
+
+
+# Vector of treatment group names
+my_treatment_group_names <- setNames(names(my_treatment_groups), names(my_treatment_groups))
+
+
+# Display ttests
+my_ttests <- lapply(my_treatment_group_names, function(my_treatment_group_name,
+                                                       my_plots) {
+  my_plots[[my_treatment_group_name]]$ttest
+},
+my_plots = my_plots)
+for (my_treatment_group_name in my_treatment_group_names) {
+  my_ttest <- my_ttests[[my_treatment_group_name]]
+  print(kable(my_ttest, caption = paste(my_treatment_group_name, "t-test")))
+}
+
+# Display ANOVA posthoc
+my_pwcs <- lapply(my_treatment_group_names, function(my_treatment_group_name,
+                                                     my_plots) {
+  my_plots[[my_treatment_group_name]]$my_pwc
+},
+my_plots = my_plots)
+for (my_treatment_group_name in my_treatment_group_names) {
+  my_pwc <- my_pwcs[[my_treatment_group_name]]
+  print(kable(my_pwc, caption = paste(my_treatment_group_name, "ANOVA with corrected posthoc pairwise comparisons")))
+}
+
+# Display plots
+my_bars <- lapply(my_treatment_group_names, function(my_treatment_group_name,
+                                                     my_plots) {
+  my_plots[[my_treatment_group_name]]$my_plot
+},
+my_plots = my_plots)
+for (my_treatment_group_name in my_treatment_group_names) {
+  print(my_treatment_group_name)
+  print(my_bars[[my_treatment_group_name]])
+}
+
+# Export plots
+# for (my_experiment_name in my_experiment_names) {
+#   for (output_format in output_formats) {
+#   ggsave(filename = file.path(out_dir, "in_vivo_titration", paste0("in_vivo_titration", "_", my_experiment_name, ".", output_format)),
+#          plot = my_bars[[my_experiment_name]],
+#          height = 6, width = 12)
+#   }
+# }
+
+# Export experiment 1 plot
+for (output_format in output_formats) {
+  ggsave(filename = file.path(out_dir, "in_vivo_titration", paste0("in_vivo_titration-combined-", my_treatment_group_names[[1]], ".", output_format)),
+         plot = my_bars[[my_treatment_group_names[[1]]]],
+         height = 6, width = 12)
+}
+
+# Export experiment 2 plot
+for (output_format in output_formats) {
+  ggsave(filename = file.path(out_dir, "in_vivo_titration", paste0("in_vivo_titration-combined-", my_treatment_group_names[[2]], ".", output_format)),
+         plot = my_bars[[my_treatment_group_names[[2]]]],
+         height = 5, width = 7)
+}
+
+```
+
+
+## Custom
+
+Experiment 2 with only Vehicle, SCR ASO and the highest dose of MSH3 ASO.
+
+``` {r in_vivo_experiments_custom, echo=TRUE, eval=TRUE, message=TRUE, warning=FALSE, fig.height=7, fig.width=14}
+
+# Filter data
+my_data <- plot_data %>%
+  dplyr::filter(experiment_id == "invivo_titration_SCR",
+                treatment %in% c("Vehicle", "SCRaso", "30ug"))
+
+# t-test
+ttest <- 
+  my_data %>%
+  group_by(tissue) %>%
+  t_test(level ~ treatment) %>%
+  adjust_pvalue(method = padj_method) %>%
+  add_significance(cutpoints = c(0, 0.001, 0.01, 0.05, 1),
+                   symbols = c("***", "**", "*", "ns")) %>%
+  add_y_position() %>%
+  ungroup()
+
+# Display ttest
+print(kable(ttest, caption = "t-test"))
+
+
+# ANOVA and corrected posthoc pairwise comparisons
+my_aov <- aov(level ~ treatment * tissue, data = my_data)
+my_emmeans <- emmeans(my_aov, pairwise ~ treatment | tissue) # emmeans 'adjust' argument is giving odd results, with some p values getting more significant
+my_pwc <- as.data.frame(my_emmeans$contrasts) %>%
+  dplyr::mutate(group1 = str_split_fixed(contrast, " - ", 2)[, 1],
+                group2 = str_split_fixed(contrast, " - ", 2)[, 2],
+                p.adj = p.adjust(p.value, method = padj_method),
+                p.adj.signif = symnum(p.adj, corr = FALSE, na = FALSE, legend = FALSE,
+                                      cutpoints = c(0, 0.001, 0.01, 0.05, 1), 
+                                      symbols = c("***", "**", "*", "ns"))) %>%
+  relocate(c(group1, group2), .after = "contrast") %>%
+  relocate(c(p.adj, p.adj.signif), .after = "p.value")
+if (hide_ns) {
+  my_pwc_plot <- my_pwc %>%
+    dplyr::filter(p.adj < 0.05)
+} else {
+  my_pwc_plot <- my_pwc
+}
+y_max <- my_data %>%
+  group_by(tissue) %>%
+  dplyr::summarise(ymax = max(level, na.rm = TRUE))
+if (nrow(my_pwc_plot) > 0) {
+  my_pwc_plot <- my_pwc_plot %>%
+    dplyr::left_join(y_max, by = join_by(tissue)) %>%
+    group_by(tissue) %>%
+    dplyr::mutate(y.position = ymax + seq(0.1 * unique(ymax), 0.2 * unique(ymax), length.out = n())) %>%
+    ungroup()
+} else {
+  my_pwc_plot[1,] <- NA
+  my_pwc_plot$y.position <- NA
+}
+
+# Display ANOVA
+print(kable(my_pwc, caption = "ANOVA with corrected posthoc pairwise comparisons"))
+
+
+# Plot
+my_plot <-
+  ggplot(my_data, aes(x = treatment, y = level)) +
+  facet_wrap(vars(tissue), nrow = 1, scales = "free_x") +
+  stat_summary(aes(fill = treatment),
+               # fun = mean, colour = "black", geom = "bar", alpha = 0.8) +
+               fun = mean, colour = "black", geom = "bar") +
+  stat_summary(fun.data = mean_se,  
+               geom = "errorbar", width = 0.2) +
+  geom_jitter(aes(fill = treatment),
+              width = 0.2, height = 0, size = point_size, colour = "black", shape = 21) +
+  geom_hline(yintercept = 0, colour = "darkgrey") +
+  geom_hline(yintercept = 100, colour = "darkgrey", linetype = "dashed") +
+  # stat_pvalue_manual(ttest, hide.ns = hide_ns, label = "p.adj.signif")
+  stat_pvalue_manual(my_pwc_plot, label = "p.adj.signif", hide.ns = hide_ns, tip.length = 0.01) +
+  scale_x_discrete(labels = treatment_ionis_rename,
+                   guide = guide_axis(angle = 45)) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  scale_colour_manual(values = treatment_ionis_colour) +
+  scale_fill_manual(values = treatment_ionis_colour) +
+  labs(x = "Treatment",
+       y = "Relative expression (%)",
+       colour = "Treatment",
+       fill = "Treatment") +
+  theme_minimal() +
+  theme(text = element_text(size = element_text_size),
+        legend.position = "none")
+
+# Display plot
+print(my_plot)
+
+
+# Export experiment 2 plot
+for (output_format in output_formats) {
+  ggsave(filename = file.path(out_dir, "in_vivo_titration", paste0("in_vivo_titration-experiment2_custom.", output_format)),
+         plot = my_plot,
+         height = 5, width = 7)
+}
+
+```
+
+
+
+
+# ASO screen
+
+## Fit models
+
+``` {r aso_screen_fit, echo=TRUE, eval=TRUE, message=TRUE, warning=FALSE, fig.height=10, fig.width=15}
+
+# Experiment ID
+experiment_id <- names(MSH3aso_data)[[12]]
+experiment_id
+
+# Make results directory
+dir.create(file.path(out_dir, experiment_id),
+           recursive = TRUE)
+
+# Format data
+plot_data <- MSH3aso_data[[experiment_id]] %>%
+  pivot_longer(!log_conc_nM,
+               names_to = "label",
+               values_to = "level") %>%
+  separate_wider_delim(label, "_", names = c("treatment", "metric")) %>%
+  pivot_wider(names_from = "metric",
+              values_from = "level") %>%
+  dplyr::mutate(log_conc_nM = as.numeric(log_conc_nM),
+                level = as.numeric(level)) %>%
+  dplyr::mutate(conc_nM = exp(log_conc_nM)) %>%
+  relocate(conc_nM) %>%
+  dplyr::filter(!is.na(level))
+
+
+# Plot using each formula
+my_fits <- lapply(model_names, plot_model_function,
+                  models = my_models,
+                  data = plot_data,
+                  xvar = "conc_nM",
+                  xlabel = "MSH3 ASO concentration (nM)",
+                  yvar = "level",
+                  ylabel = "Relative expression (%)",
+                  group_var = "treatment",
+                  group_label = "Treatment",
+                  log_increment = log_increment,
+                  plot_se = FALSE)
+
+# Plot model fits
+my_plots <- lapply(my_fits, function(my_fit) {
+  my_fit$my_plot
+})
+wrap_plots(my_plots) +
+  plot_annotation(title = "Regression models",
+                  theme = theme(plot.title = element_text(hjust = 0.5, face = "bold")))
+
+# r2 table
+my_r2 <- lapply(my_fits, function(my_fit) {
+  my_fit[["r2"]]
+})
+r2_table <- data.frame(model_name = names(my_r2),
+                       r2 = unlist(my_r2)) %>%
+  tibble::rownames_to_column("model_number") %>%
+  arrange(-r2)
+
+# Display r2 table
+kbl(r2_table, caption = "R-squared") %>%
+  kable_styling(bootstrap_options = "striped")
+
+```
+
+
+## Plot
+
+``` {r aso_screen_plot, echo=TRUE, eval=TRUE, message=TRUE, warning=FALSE}
+
+# Plot
+my_plot <-
+  ggplot(plot_data, aes(x = conc_nM, y = level, colour = treatment, fill = treatment)) +
+  geom_point(size = point_size) +
+  geom_errorbar(aes(ymin = level - sd, 
+                    ymax = level + sd),
+                width = 0.25) +
+  stat_smooth(method = lm, 
+              formula = y ~ log(x),
+              fullrange = FALSE, alpha = 0.2, se = FALSE) +
+  scale_x_continuous(breaks = pretty_breaks()) +
+  scale_y_continuous(trans = "log2",
+                     breaks = c(0.1, 1, 2, 5, 10, 25, 50, 100)) +
+  labs(x = "MSH3 ASO dose (nM)",
+       y = "Relative expression (%)",
+       colour = "ASO",
+       fill = "ASO") +
+  theme_bw() +
+  theme(text = element_text(size = element_text_size))
+my_plot
+
+# Export
+for (output_format in output_formats) {
+  ggsave(filename = file.path(out_dir, experiment_id, paste0(experiment_id, ".", output_format)),
+         plot = my_plot)
+}
+
+# Plot without legend
+my_plot <- my_plot +
+  theme(legend.position = "none")
+my_plot
+
+# Export
+for (output_format in output_formats) {
+  ggsave(filename = file.path(out_dir, experiment_id, paste0(experiment_id, "_nolegend.", output_format)),
+         plot = my_plot,
+         height = 6, width = 6)
+}
+
+```
+
+
+# Viability
+
+``` {r viability, echo=TRUE, eval=TRUE, message=TRUE, warning=FALSE, fig.height=7, fig.width=10}
+
+# Experiment ID
+experiment_id <- names(MSH3aso_data)[[13]]
+experiment_id
+
+# Make results directory
+dir.create(file.path(out_dir, experiment_id),
+           recursive = TRUE)
+
+# Format data
+plot_data <- MSH3aso_data[[experiment_id]] %>%
+  dplyr::select(-metric) %>%
+  pivot_longer(!treatment_duration_weeks,
+               names_to = "label",
+               values_to = "level") %>%
+  separate_wider_delim(label, "_", names = c("treatment", "rep")) %>%
+  dplyr::mutate(treatment_duration_weeks = as.numeric(treatment_duration_weeks),
+                level = as.numeric(level)) %>%
+  dplyr::filter(!is.na(level)) %>%
+  dplyr::mutate(treatment_duration_weeks = case_when(treatment_duration_weeks == 9 ~ "9 weeks",
+                                                     treatment_duration_weeks == 15 ~ "15 weeks",
+                                                     TRUE ~ NA))
+
+# Relevel variables
+plot_data <- plot_data %>%
+  dplyr::mutate(treatment = fct_relevel(treatment, intersect(treatment_order, unique(plot_data$treatment))),
+                treatment_duration_weeks = fct_relevel(treatment_duration_weeks, c("9 weeks", "15 weeks")))
+
+# t-test with correction
+ttest <- 
+  plot_data %>%
+  group_by(treatment_duration_weeks) %>%
+  t_test(level ~ treatment) %>%
+  adjust_pvalue(method = padj_method) %>%
+  add_significance(cutpoints = c(0, 0.001, 0.01, 0.05, 1),
+                   symbols = c("***", "**", "*", "ns")) %>%
+  add_y_position() %>%
+  ungroup()
+
+# Display t-test
+kbl(ttest, caption = "T-test") %>%
+  kable_styling(bootstrap_options = "striped")
+
+
+# ANOVA and corrected posthoc pairwise comparisons
+my_aov <- aov(level ~ treatment * treatment_duration_weeks, data = plot_data)
+my_emmeans <- emmeans(my_aov, pairwise ~ treatment | treatment_duration_weeks) # emmeans 'adjust' argument is giving odd results, with some p values getting more significant
+my_pwc <- as.data.frame(my_emmeans$contrasts) %>%
+  dplyr::mutate(group1 = str_split_fixed(contrast, " - ", 2)[, 1],
+                group2 = str_split_fixed(contrast, " - ", 2)[, 2],
+                p.adj = p.adjust(p.value, method = padj_method),
+                p.adj.signif = symnum(p.adj, corr = FALSE, na = FALSE, legend = FALSE,
+                                      cutpoints = c(0, 0.001, 0.01, 0.05, 1), 
+                                      symbols = c("***", "**", "*", "ns"))) %>%
+  relocate(c(group1, group2), .after = "contrast") %>%
+  relocate(c(p.adj, p.adj.signif), .after = "p.value")
+if (hide_ns) {
+  my_pwc_plot <- my_pwc %>%
+    dplyr::filter(p.adj < 0.05)
+} else {
+  my_pwc_plot <- my_pwc
+}
+y_max <- plot_data %>%
+  group_by(treatment_duration_weeks) %>%
+  dplyr::summarise(ymax = max(level, na.rm = TRUE))
+if (nrow(my_pwc_plot) > 0) {
+  my_pwc_plot <- my_pwc_plot %>%
+    dplyr::left_join(y_max, by = join_by(treatment_duration_weeks)) %>%
+    group_by(treatment_duration_weeks) %>%
+    dplyr::mutate(y.position = ymax + seq(0.1 * unique(ymax), 0.5 * unique(ymax), length.out = n())) %>%
+    ungroup()
+} else {
+  my_pwc_plot[1,] <- NA
+  my_pwc_plot$y.position <- NA
+}
+
+# Display ANOVA posthoc
+kbl(my_pwc, caption = "ANOVA with corrected posthoc pairwise comparisons") %>%
+  kable_styling(bootstrap_options = "striped")
+
+
+# Plot
+my_plot <-
+  ggplot(plot_data, aes(x = treatment, y = level)) +
+  facet_wrap(vars(treatment_duration_weeks)) +
+  stat_summary(aes(fill = treatment),
+               # fun = mean, colour = "black", geom = "bar", alpha = 0.8) +
+               fun = mean, colour = "black", geom = "bar") +
+  stat_summary(fun.data = mean_se,  
+               geom = "errorbar", width = 0.2) +
+  geom_jitter(aes(fill = treatment),
+              width = 0.2, height = 0, size = point_size, colour = "black", shape = 21) +
+  # geom_violin(trim = TRUE) +
+  # geom_boxplot(outlier.shape = NA, width = 0.2) +
+  # geom_jitter(aes(colour = treatment, fill = treatment),
+  #             width = 0.2, height = 0, size = point_size, alpha = 0.75) +
+  # stat_summary(fun = mean, geom = "point", shape = 18, size = point_size + 2, show.legend = FALSE) +
+  # stat_summary(fun = mean, geom = "text", show.legend = FALSE, vjust = -1, size = point_size + 2,
+  #              aes(label = after_stat(round(y, 1)))) +
+  # stat_compare_means(comparisons = pairwise_comparisons,
+  #                    label = "p.signif",
+  #                    hide.ns = hide_ns) +
+  # stat_pvalue_manual(ttest, hide.ns = hide_ns, label = "p.adj") +
+  stat_pvalue_manual(my_pwc_plot, hide.ns = hide_ns, label = "p.adj.signif", tip.length = 0.01) +
+  geom_hline(yintercept = 0, colour = "darkgrey") +
+  geom_hline(yintercept = 100, colour = "darkgrey", linetype = "dashed") +
+  scale_colour_manual(values = treatment_colour) +
+  scale_fill_manual(values = treatment_colour) +
+  scale_x_discrete(labels = \(x) scales::label_parse()(treatment_rename_subscript[x]),
+                   guide = guide_axis(angle = 55)) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  labs(x = "Treatment",
+       y = "Cell viability (%)",
+       colour = "Treatment",
+       fill = "Treatment") +
+  theme_bw() +
+  theme(text = element_text(size = element_text_size),
+        legend.position = "none")
+my_plot
+
+
+# Export
+for (output_format in output_formats) {
+  ggsave(filename = file.path(out_dir, experiment_id, paste0(experiment_id, ".", output_format)),
+         plot = my_plot,
+         height = 6, width = 6)
+}
+
+```
+
+
+# Mihai MSH3 normalised
+
+``` {r mihai_MSH3, echo=TRUE, eval=TRUE, message=TRUE, warning=FALSE, fig.height=7, fig.width=7}
+
+# Experiment ID
+experiment_id <- names(MSH3aso_data)[[14]]
+experiment_id
+
+# Make results directory
+dir.create(file.path(out_dir, experiment_id),
+           recursive = TRUE)
+
+# Format data
+plot_data <- MSH3aso_data[[experiment_id]] %>%
+  pivot_longer(everything(),
+               names_to = "treatment",
+               values_to = "MSH3_counts_normalised") %>%
+  dplyr::mutate(MSH3_counts_normalised = as.numeric(MSH3_counts_normalised)) %>%
+  dplyr::filter(!is.na(MSH3_counts_normalised))
+
+# Relevel variables
+plot_data <- plot_data %>%
+  dplyr::mutate(treatment = fct_relevel(treatment, intersect(treatment_order, unique(plot_data$treatment))))
+
+# t-test with correction
+ttest <- 
+  plot_data %>%
+  t_test(MSH3_counts_normalised ~ treatment) %>%
+  adjust_pvalue(method = padj_method) %>%
+  add_significance(cutpoints = c(0, 0.001, 0.01, 0.05, 1),
+                   symbols = c("***", "**", "*", "ns")) %>%
+  add_y_position() %>%
+  ungroup()
+
+# Display t-test
+kbl(ttest, caption = "T-test") %>%
+  kable_styling(bootstrap_options = "striped")
+
+
+# ANOVA and corrected posthoc pairwise comparisons
+my_aov <- aov(MSH3_counts_normalised ~ treatment, data = plot_data)
+my_emmeans <- emmeans(my_aov, pairwise ~ treatment) # emmeans 'adjust' argument is giving odd results, with some p values getting more significant
+my_pwc <- as.data.frame(my_emmeans$contrasts) %>%
+  dplyr::mutate(group1 = str_split_fixed(contrast, " - ", 2)[, 1],
+                group2 = str_split_fixed(contrast, " - ", 2)[, 2],
+                p.adj = p.adjust(p.value, method = padj_method),
+                p.adj.signif = symnum(p.adj, corr = FALSE, na = FALSE, legend = FALSE,
+                                      cutpoints = c(0, 0.001, 0.01, 0.05, 1), 
+                                      symbols = c("***", "**", "*", "ns"))) %>%
+  relocate(c(group1, group2), .after = "contrast") %>%
+  relocate(c(p.adj, p.adj.signif), .after = "p.value")
+if (hide_ns) {
+  my_pwc_plot <- my_pwc %>%
+    dplyr::filter(p.adj < 0.05)
+} else {
+  my_pwc_plot <- my_pwc
+}
+y_max <- max(plot_data$MSH3_counts_normalised, na.rm = TRUE)
+if (nrow(my_pwc_plot) > 0) {
+  my_pwc_plot <- my_pwc_plot %>%
+    dplyr::mutate(ymax = y_max) %>%
+    dplyr::mutate(y.position = ymax + seq(0.1 * unique(ymax), 0.5 * unique(ymax), length.out = n()))
+} else {
+  my_pwc_plot[1,] <- NA
+  my_pwc_plot$y.position <- NA
+}
+
+# Display ANOVA posthoc
+kbl(my_pwc, caption = "ANOVA with corrected posthoc pairwise comparisons") %>%
+  kable_styling(bootstrap_options = "striped")
+
+
+# Plot
+my_plot <-
+  ggplot(plot_data, aes(x = treatment, y = MSH3_counts_normalised)) +
+  # stat_summary(fun = mean, geom = "bar", colour = "black", alpha = 0.8) +
+  stat_summary(fun = mean, geom = "bar", colour = "black") +
+  stat_summary(fun.data = mean_se, geom = "errorbar", width = 0.2) +
+  geom_jitter(width = 0.2, height = 0, size = point_size, alpha = 0.6) +
+  stat_pvalue_manual(my_pwc_plot, hide.ns = hide_ns, label = "p.adj.signif", tip.length = 0.01) +
+  # geom_hline(yintercept = 0, colour = "darkgrey") +
+  scale_x_discrete(labels = treatment_rename,
+                   guide = guide_axis(angle = 45)) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  labs(x = "Treatment",
+       y = "Normalised MSH3 counts") +
+  theme_bw() +
+  theme(text = element_text(size = element_text_size),
+        legend.position = "none")
+my_plot
+
+# Export
+for (output_format in output_formats) {
+  ggsave(filename = file.path(out_dir, experiment_id, paste0(experiment_id, ".", output_format)),
+         plot = my_plot,
+         height = 6, width = 6)
+}
+
+
+# Plot in colour
+my_plot <-
+  ggplot(plot_data, aes(x = treatment, y = MSH3_counts_normalised)) +
+  stat_summary(aes(fill = treatment),
+               # fun = mean, geom = "bar", colour = "black", alpha = 0.8) +
+               fun = mean, geom = "bar", colour = "black") +
+  stat_summary(fun.data = mean_se, geom = "errorbar", width = 0.2) +
+  geom_jitter(aes(fill = treatment),
+              shape = 21, width = 0.2, height = 0, size = point_size, alpha = 0.8) +
+  stat_pvalue_manual(my_pwc_plot, hide.ns = hide_ns, label = "p.adj.signif", tip.length = 0.01) +
+  # geom_hline(yintercept = 0, colour = "darkgrey") +
+  scale_fill_manual(values = treatment_colour,
+                    labels = treatment_rename) +
+  scale_x_discrete(labels = treatment_rename,
+                   guide = guide_axis(angle = 45)) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  labs(x = "Treatment",
+       y = "Normalised MSH3 counts") +
+  theme_bw() +
+  theme(text = element_text(size = element_text_size),
+        legend.position = "none")
+my_plot
+
+# Export
+for (output_format in output_formats) {
+  ggsave(filename = file.path(out_dir, experiment_id, paste0(experiment_id, "-colour.", output_format)),
+         plot = my_plot,
+         height = 6, width = 6)
+}
+
+```
+
+
+# MSH3 protein vs instability
+
+## Format data
+
+``` {r MSH3protein_instability_format, echo=TRUE, eval=TRUE, message=TRUE, warning=FALSE}
+
+# Experiment ID
+experiment_id <- names(MSH3aso_data)[[15]]
+experiment_id
+
+# Make results directory
+dir.create(file.path(out_dir, experiment_id),
+           recursive = TRUE)
+
+# Format data
+plot_data <- MSH3aso_data[[experiment_id]] %>%
+  dplyr::mutate(clone = "") %>%
+  relocate(clone, .after = "genotype")
+  
+# Add MSH3ko protein level
+MSH3ko_protein <- data.frame("experiment_id" = "MSH3ko_CRISPRwt",
+                             "differentiation_id" = c("NI1908", "NI1708", "NI1808"), 
+                             "genotype" = "MSH3ko", 
+                             "clone" = c("Cl27", "Cl37", "Cl26"),
+                             "condition_eb" = NA, 
+                             "treatment" = "untreated",
+                             "dose_uM" = NA, 
+                             "treatment_dose" = "untreated", 
+                             "group_juliet" = "MSH3ko_untreated",
+                             "group_juliet_differentiations" = c("MSH3ko_CRISPRwt-NI1908-Cl27-MSH3ko",
+                                                                 "MSH3ko_CRISPRwt-NI1708-Cl37 -MSH3ko",
+                                                                 "MSH3ko_CRISPRwt-NI1808-Cl26-MSH3ko"),
+                             "MSH3_level_normalised" = 0)
+plot_data <- rbind(plot_data, MSH3ko_protein) %>%
+  dplyr::mutate(predvar2 = paste0(experiment_id, "-", differentiation_id, "-", clone, "-", genotype))
+
+# Add instability rate
+plot_data <- plot_data %>%
+  left_join(juliet_slopes %>%
+              dplyr::mutate(predvar2 = str_replace_all(predvar2, " ", "")),
+            by = join_by(predvar2, group_juliet == predvar1)) %>%
+  dplyr::rename(ii_slope = slope)
+
+# Add annotation
+plot_data <- plot_data %>%
+  left_join(juliet_annotation,
+            by = join_by(experiment_id, group_juliet)) %>%
+  dplyr::mutate(group_juliet = fct_relevel(group_juliet, unique(juliet_annotation$group_juliet)))
+
+```
+
+
+## Fit models
+
+``` {r MSH3protein_instability_fit, echo=TRUE, eval=TRUE, message=TRUE, warning=FALSE, fig.height=10, fig.width=15}
+
+# Plot using each formula
+my_fits <- lapply(model_names, plot_model_function,
+                  models = my_models,
+                  data = plot_data,
+                  xvar = "MSH3_level_normalised",
+                  xlabel = "MSH3 protein level (%)",
+                  yvar = "ii_slope",
+                  ylabel = "CAG expansion rate (Change in instability index / week)",
+                  group_var = NA,
+                  group_label = NA,
+                  log_increment = log_increment,
+                  plot_se = TRUE)
+
+# Plot model fits
+my_plots <- lapply(my_fits, function(my_fit) {
+  my_fit$my_plot
+})
+wrap_plots(my_plots) +
+  plot_annotation(title = "Regression models",
+                  theme = theme(plot.title = element_text(hjust = 0.5, face = "bold")))
+
+# r2 table
+my_r2 <- lapply(my_fits, function(my_fit) {
+  my_fit[["r2"]]
+})
+r2_table <- data.frame(model_name = names(my_r2),
+                       r2 = unlist(my_r2)) %>%
+  tibble::rownames_to_column("model_number") %>%
+  arrange(-r2)
+
+# Display r2 table
+kbl(r2_table, caption = "R-squared") %>%
+  kable_styling(bootstrap_options = "striped")
+
+```
+
+
+## IC50
+
+### Dose response model
+
+``` {r MSH3protein_instability_IC50_drm, echo=TRUE, eval=TRUE, message=TRUE, warning=FALSE}
+
+# Fit dose-response model
+my_drm <- drm(ii_slope ~ MSH3_level_normalised, data = plot_data, fct = LL.4())
+
+# Extract IC50 value
+ic50 <- ED(my_drm, 50)
+ic50_estimate <- ic50[[1]]
+ic50_se <- ic50[[2]]
+ic50_upper <- ic50_estimate + 1.96 * ic50_se
+ic50_lower <- ic50_estimate - 1.96 * ic50_se
+
+# Find max value for the response variable using the dose response model
+max_response_var_drm <- predict(my_drm, newdata = data.frame(MSH3_level_normalised = 100))
+
+# Plot drm model
+plot(my_drm, main = "Dose-response curve using drc")
+abline(h = 0.5 * max_response_var_drm, col = "blue", lty = 2)
+abline(v = ic50_estimate, col = "blue", lty = 2)
+
+# Table of IC50
+ic50_table <- data.frame(method = "drc",
+                         max_ii_slope = as.numeric(max_response_var_drm),
+                         IC50 = ic50_estimate,
+                         ci_lower = ic50_lower,
+                         ci_upper = ic50_upper)
+kbl(ic50_table, caption = "IC50") %>%
+  kable_styling(bootstrap_options = "striped")
+
+```
+
+
+### Interpolation using a dose response model
+
+``` {r MSH3protein_instability_IC50_drm_interpolation, echo=TRUE, eval=TRUE, message=TRUE, warning=FALSE}
+
+# Use predicted data from drm curve to calculate the drm curve IC50 by interpolation
+# predicted_values_drm <- data.frame(MSH3_level_normalised = seq(0, max(plot_data$MSH3_level_normalised), length.out = 1000))
+predicted_values_drm <- data.frame(MSH3_level_normalised = seq(0, max(plot_data$MSH3_level_normalised), length.out = nrow(plot_data)))
+predictions <- as.data.frame(predict(my_drm, newdata = predicted_values_drm, interval = "confidence")) %>%
+  dplyr::rename(ii_slope = Prediction, 
+                ci_lower = Lower, 
+                ci_upper = Upper)
+predicted_values_drm <- cbind(predicted_values_drm, predictions)
+# plot(ii_slope ~ MSH3_level_normalised, data = predicted_values_drm)
+
+# Calculate IC50 using interpolation with the dose response model
+ic50_interpolation_drm <- ed_interpolation(data = predicted_values_drm,
+                                           response_var = "ii_slope",
+                                           pred_var = "MSH3_level_normalised",
+                                           formula = as.formula("ii_slope ~ MSH3_level_normalised"),
+                                           model_function = "drm",
+                                           response_level = 0.5 * max_response_var_drm,
+                                           n_bootstrap = 1000,
+                                           confidence_level = 0.95)
+
+# Calculate IC100 (response variable 0% of its maximum value)
+ic100_interpolation_drm <- ed_interpolation(data = predicted_values_drm,
+                                            response_var = "ii_slope",
+                                            pred_var = "MSH3_level_normalised",
+                                            formula = as.formula("ii_slope ~ MSH3_level_normalised"),
+                                            model_function = "drm",
+                                            response_level = 0,
+                                            n_bootstrap = 1000,
+                                            confidence_level = 0.95)
+
+# Plot linear model
+plot(ii_slope ~ MSH3_level_normalised, 
+     data = ic50_interpolation_drm$predicted_values,
+     main = "Dose-response curve using interpolation")
+abline(h = 0.5 * max_response_var_drm, col = "blue", lty = 2)
+abline(v = ic50_interpolation_drm$ed, col = "blue", lty = 2)
+abline(v = ic50_interpolation_drm$ci_lower, col = "lightblue", lty = 2)
+abline(v = ic50_interpolation_drm$ci_upper, col = "lightblue", lty = 2)
+abline(h = 0, col = "red", lty = 2)
+abline(v = ic100_interpolation_drm$ed, col = "red", lty = 2)
+abline(v = ic100_interpolation_drm$ci_lower, col = "pink", lty = 2)
+abline(v = ic100_interpolation_drm$ci_upper, col = "pink", lty = 2)
+
+
+# Table of IC50
+ed_table <- data.frame(method = "drc_interpolation",
+                         max_ii_slope = as.numeric(max_response_var_drm),
+                         ed_level = c(50, 100),
+                         ED = c(ic50_interpolation_drm$ed, ic100_interpolation_drm$ed),
+                         ci_lower = c(ic50_interpolation_drm$ci_lower, ic100_interpolation_drm$ci_lower),
+                         ci_upper = c(ic50_interpolation_drm$ci_upper, ic100_interpolation_drm$ci_upper))
+kbl(ed_table, caption = "Effective doses (ED)") %>%
+  kable_styling(bootstrap_options = "striped")
+
+```
+
+
+### Interpolation using a linear model
+
+``` {r MSH3protein_instability_IC50_lm_interpolation, echo=TRUE, eval=TRUE, message=TRUE, warning=FALSE}
+
+# Calculate IC50 by interpolation
+my_lm <- lm(ii_slope ~ MSH3_level_normalised, data = plot_data)
+max_response_var_lm <- predict(my_lm, newdata = data.frame(MSH3_level_normalised = 100))
+ic50_interpolation_lm <- ed_interpolation(data = plot_data,
+                                          response_var = "ii_slope",
+                                          pred_var = "MSH3_level_normalised",
+                                          formula = as.formula("ii_slope ~ MSH3_level_normalised"),
+                                          model_function = "lm",
+                                          response_level = 0.5 * max_response_var_lm,
+                                          n_bootstrap = 1000,
+                                          confidence_level = 0.95)
+
+# Calculate IC100 (response variable 0% of its maximum value)
+ic100_interpolation_lm <- ed_interpolation(data = plot_data,
+                                           response_var = "ii_slope",
+                                           pred_var = "MSH3_level_normalised",
+                                           formula = as.formula("ii_slope ~ MSH3_level_normalised"),
+                                           model_function = "lm",
+                                           response_level = 0,
+                                           n_bootstrap = 1000,
+                                           confidence_level = 0.95)
+
+# Plot linear model
+plot(ii_slope ~ MSH3_level_normalised, 
+     data = ic50_interpolation_lm$predicted_values,
+     main = "Dose-response curve using interpolation")
+abline(h = 0.5 * max_response_var_lm, col = "blue", lty = 2)
+abline(v = ic50_interpolation_lm$ed, col = "blue", lty = 2)
+abline(v = ic50_interpolation_lm$ci_lower, col = "lightblue", lty = 2)
+abline(v = ic50_interpolation_lm$ci_upper, col = "lightblue", lty = 2)
+abline(h = 0, col = "red", lty = 2)
+abline(v = ic100_interpolation_lm$ed, col = "red", lty = 2)
+abline(v = ic100_interpolation_lm$ci_lower, col = "pink", lty = 2)
+abline(v = ic100_interpolation_lm$ci_upper, col = "pink", lty = 2)
+
+
+# Table of effective doses
+ed_table <- data.frame(method = "lm_interpolation",
+                         max_ii_slope = as.numeric(max_response_var_lm),
+                         ed_level = c(50, 100),
+                         ED = c(ic50_interpolation_lm$ed, ic100_interpolation_lm$ed),
+                         ci_lower = c(ic50_interpolation_lm$ci_lower, ic100_interpolation_lm$ci_lower),
+                         ci_upper = c(ic50_interpolation_lm$ci_upper, ic100_interpolation_lm$ci_upper))
+kbl(ed_table, caption = "Effective doses (ED)") %>%
+  kable_styling(bootstrap_options = "striped")
+
+```
+
+
+### Dose response curve
+
+``` {r MSH3protein_instability_plot_drm, echo=TRUE, eval=TRUE, message=TRUE, warning=FALSE, fig.height=7, fig.width=10}
+
+# Group colours
+my_colours <- juliet_annotation %>%
+  dplyr::select(group_juliet, group_colour) %>%
+  distinct()
+my_colours <- setNames(my_colours$group_colour, my_colours$group_juliet)
+
+# Group rename
+my_rename <- juliet_annotation %>%
+  dplyr::select(group_juliet, group_rename) %>%
+  distinct()
+my_rename <- setNames(my_rename$group_rename, my_rename$group_juliet)
+
+# Plot
+my_plot <-
+  ggplot(plot_data, aes(x = MSH3_level_normalised, y = ii_slope)) +
+  geom_point(aes(fill = group_juliet), 
+             size = point_size, shape = 21, colour = "black", alpha = 0.8) +
+  geom_line(data = ic50_interpolation_drm$predicted_values, 
+            aes(x = MSH3_level_normalised, y = ii_slope),
+            colour = "black", size = 1) +
+  geom_segment(aes(x = -Inf, xend = ic50_interpolation_drm$ed, 
+                   y = 0.5 * max_response_var_drm, yend = 0.5 * max_response_var_drm), 
+               colour = "blue", linetype = "dashed", size = 0.5, alpha = 0.5) +
+  geom_segment(aes(x = ic50_interpolation_drm$ed, xend = ic50_interpolation_drm$ed, 
+                   y = -Inf, yend = 0.5 * max_response_var_drm), 
+               colour = "blue", linetype = "dashed", size = 0.5, alpha = 0.5) +
+  geom_rect(aes(xmin = ic50_interpolation_drm$ci_lower, xmax = ic50_interpolation_drm$ci_upper,
+                ymin = -Inf, ymax = 0.5 * max_response_var_drm), 
+            fill = "blue", alpha = 0.01, colour = NA) +
+  geom_segment(aes(x = -Inf, xend = ic100_interpolation_drm$ed, 
+                   y = 0, yend = 0), 
+               colour = "red", linetype = "dashed", size = 0.5, alpha = 0.5) +
+  geom_segment(aes(x = ic100_interpolation_drm$ed, xend = ic100_interpolation_drm$ed, 
+                   y = -Inf, yend = 0), 
+               colour = "red", linetype = "dashed", size = 0.5, alpha = 0.5) +
+  geom_rect(aes(xmin = ic100_interpolation_drm$ci_lower, xmax = ic100_interpolation_drm$ci_upper,
+                ymin = -Inf, ymax = 0), 
+            fill = "red", alpha = 0.01, colour = NA) +
+  scale_fill_manual(values = my_colours,
+                    labels = my_rename) +
+  scale_x_continuous(breaks = pretty_breaks()) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  labs(x = "MSH3 protein level (%)",
+       y = "CAG expansion rate\n(change in instability index / week)",
+       fill = "Treatment") +
+  theme_bw() +
+  theme(text = element_text(size = element_text_size))
+my_plot
+
+# Export
+for (output_format in output_formats) {
+  ggsave(filename = file.path(out_dir, experiment_id, paste0(experiment_id, "_drm.", output_format)),
+         plot = my_plot,
+         height = 6, width = 9)
+}
+
+# Add confidence interval
+my_plot <- 
+  my_plot +
+  geom_ribbon(data = predicted_values_drm,
+              aes(ymin = ci_lower, ymax = ci_upper), 
+              fill = "darkgrey", alpha = 0.3)
+my_plot
+
+# Export
+for (output_format in output_formats) {
+  ggsave(filename = file.path(out_dir, experiment_id, paste0(experiment_id, "_drm_ci.", output_format)),
+         plot = my_plot,
+         height = 6, width = 9)
+}
+
+```
+
+
+### Linear model
+
+``` {r MSH3protein_instability_plot_lm, echo=TRUE, eval=TRUE, message=TRUE, warning=FALSE, fig.height=7, fig.width=10}
+
+my_plot <-
+  ggplot(plot_data, aes(x = MSH3_level_normalised, y = ii_slope)) +
+  geom_point(aes(fill = group_juliet), 
+             size = point_size, shape = 21, colour = "black", alpha = 0.8) +
+  stat_smooth(method = lm, 
+              formula = y ~ x,
+              fullrange = TRUE, se = TRUE, colour = "black", fill = "darkgrey", alpha = 0.3) +
+  geom_segment(aes(x = -Inf, xend = ic50_interpolation_lm$ed, 
+                   y = 0.5 * max_response_var_lm, yend = 0.5 * max_response_var_lm), 
+               colour = "blue", linetype = "dashed", size = 0.5, alpha = 0.5) +
+  geom_segment(aes(x = ic50_interpolation_lm$ed, xend = ic50_interpolation_lm$ed, 
+                   y = -Inf, yend = 0.5 * max_response_var_lm), 
+               colour = "blue", linetype = "dashed", size = 0.5, alpha = 0.5) +
+  geom_rect(aes(xmin = ic50_interpolation_lm$ci_lower, xmax = ic50_interpolation_lm$ci_upper,
+                ymin = -Inf, ymax = 0.5 * max_response_var_lm), 
+            fill = "blue", alpha = 0.01, colour = NA) +
+  geom_segment(aes(x = -Inf, xend = ic100_interpolation_lm$ed, 
+                   y = 0, yend = 0), 
+               colour = "red", linetype = "dashed", size = 0.5, alpha = 0.5) +
+  geom_segment(aes(x = ic100_interpolation_lm$ed, xend = ic100_interpolation_lm$ed, 
+                   y = -Inf, yend = 0), 
+               colour = "red", linetype = "dashed", size = 0.5, alpha = 0.5) +
+  geom_rect(aes(xmin = ic100_interpolation_lm$ci_lower, xmax = ic100_interpolation_lm$ci_upper,
+                ymin = -Inf, ymax = 0), 
+            fill = "red", alpha = 0.01, colour = NA) +
+  scale_fill_manual(values = my_colours,
+                    labels = my_rename) +
+  scale_x_continuous(breaks = pretty_breaks()) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  labs(x = "MSH3 protein level (%)",
+       y = "CAG expansion rate\n(change in instability index / week)",
+       fill = "Treatment") +
+  theme_bw() +
+  theme(text = element_text(size = element_text_size))
+my_plot
+
+# Export
+for (output_format in output_formats) {
+  ggsave(filename = file.path(out_dir, experiment_id, paste0(experiment_id, "_lm.", output_format)),
+         plot = my_plot,
+         height = 6, width = 9)
+}
+
+```
+
