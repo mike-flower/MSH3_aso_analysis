@@ -1649,8 +1649,8 @@ kbl(ttest, caption = "T-test") %>%
 
 
 # ANOVA and corrected posthoc pairwise comparisons
-my_aov <- aov(level ~ genotype * Metric, data = plot_data)
-my_emmeans <- emmeans(my_aov, pairwise ~ genotype | Metric) # emmeans 'adjust' argument is giving odd results, with some p values getting more significant
+my_aov <- aov(level ~ treatment * genotype * Metric, data = plot_data)
+my_emmeans <- emmeans(my_aov, pairwise ~ treatment | genotype * Metric) # emmeans 'adjust' argument is giving odd results, with some p values getting more significant
 my_pwc <- as.data.frame(my_emmeans$contrasts) %>%
   dplyr::mutate(group1 = str_split_fixed(contrast, " - ", 2)[, 1],
                 group2 = str_split_fixed(contrast, " - ", 2)[, 2],
@@ -1659,7 +1659,10 @@ my_pwc <- as.data.frame(my_emmeans$contrasts) %>%
                                       cutpoints = c(0, 0.001, 0.01, 0.05, 1), 
                                       symbols = c("***", "**", "*", "ns"))) %>%
   relocate(c(group1, group2), .after = "contrast") %>%
-  relocate(c(p.adj, p.adj.signif), .after = "p.value")
+  relocate(c(p.adj, p.adj.signif), .after = "p.value") %>%
+  dplyr::mutate(contrast = gsub("[()]", "", contrast),
+                group1 = gsub("[()]", "", group1),
+                group2 = gsub("[()]", "", group2))
 if (hide_ns) {
   my_pwc_plot <- my_pwc %>%
     dplyr::filter(p.adj < 0.05)
