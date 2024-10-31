@@ -18,8 +18,8 @@ To run this analysis, you will need:
 ## Usage
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/MSH3_ASO_Analysis.git
-   cd MSH3_ASO_Analysis
+   git clone https://github.com/mike-flower/MSH3_aso_analysis.git
+   cd MSH3_aso_analysis
    ```
 2. Install required R packages (if not already installed):
    ```R
