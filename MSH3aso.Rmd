@@ -1647,6 +1647,43 @@ ttest <-
 kbl(ttest, caption = "T-test") %>%
   kable_styling(bootstrap_options = "striped")
 
+
+# ANOVA and corrected posthoc pairwise comparisons
+my_aov <- aov(level ~ genotype * Metric, data = plot_data)
+my_emmeans <- emmeans(my_aov, pairwise ~ genotype | Metric) # emmeans 'adjust' argument is giving odd results, with some p values getting more significant
+my_pwc <- as.data.frame(my_emmeans$contrasts) %>%
+  dplyr::mutate(group1 = str_split_fixed(contrast, " - ", 2)[, 1],
+                group2 = str_split_fixed(contrast, " - ", 2)[, 2],
+                p.adj = p.adjust(p.value, method = padj_method),
+                p.adj.signif = symnum(p.adj, corr = FALSE, na = FALSE, legend = FALSE,
+                                      cutpoints = c(0, 0.001, 0.01, 0.05, 1), 
+                                      symbols = c("***", "**", "*", "ns"))) %>%
+  relocate(c(group1, group2), .after = "contrast") %>%
+  relocate(c(p.adj, p.adj.signif), .after = "p.value")
+if (hide_ns) {
+  my_pwc_plot <- my_pwc %>%
+    dplyr::filter(p.adj < 0.05)
+} else {
+  my_pwc_plot <- my_pwc
+}
+y_max <- plot_data %>%
+  group_by(Metric) %>%
+  dplyr::summarise(ymax = max(level, na.rm = TRUE))
+if (nrow(my_pwc_plot) > 0) {
+  my_pwc_plot <- my_pwc_plot %>%
+    dplyr::left_join(y_max, by = join_by(Metric)) %>%
+    group_by(Metric) %>%
+    dplyr::mutate(y.position = ymax + seq(0.1 * unique(ymax), 0.5 * unique(ymax), length.out = n())) %>%
+    ungroup()
+} else {
+  my_pwc_plot[1,] <- NA
+  my_pwc_plot$y.position <- NA
+}
+
+# Display ANOVA posthoc
+kbl(my_pwc, caption = "ANOVA with corrected posthoc pairwise comparisons") %>%
+  kable_styling(bootstrap_options = "striped")
+
 ```
 
 
